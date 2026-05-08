@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -7,20 +7,38 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Features\BulkRiceWareHouseTransfer\**" />
+    <Compile Remove="Features\RiceBoxOrders\**" />
+    <EmbeddedResource Remove="Features\BulkRiceWareHouseTransfer\**" />
+    <EmbeddedResource Remove="Features\RiceBoxOrders\**" />
+    <None Remove="Features\BulkRiceWareHouseTransfer\**" />
+    <None Remove="Features\RiceBoxOrders\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
     <ProjectReference Include="..\EmailService\EmailService.csproj" />
     <ProjectReference Include="..\RedisService\RedisService.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Auth\Command\" />
-    <Folder Include="Features\Auth\Queries\" />
+    <Folder Include="Features\BulkRiceOrders\Command\EditBulkRiceOrder\" />
+    <Folder Include="Features\BulkRiceRiceLot\Command\" />
+    <Folder Include="Features\Documents\Queries\" />
+    <Folder Include="Features\InventoryReceipt\Command\AddDetail\" />
+    <Folder Include="Features\Inventory\Command\" />
+    <Folder Include="Features\RiceBox\" />
+    <Folder Include="Features\Partner\Command\Edit\" />
+    <Folder Include="Features\Role\Command\" />
+    <Folder Include="Features\Statistical\Command\" />
+    <Folder Include="Features\WareHouseTransferReceiptVouchers\Command\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.2.2" />
     <PackageReference Include="MediatR" Version="14.0.0" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
   </ItemGroup>
 
   <ItemGroup>

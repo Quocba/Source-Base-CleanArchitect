@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 
 public class GenericCacheInvalidator<TEntity> : BaseCacheInvalidator<TEntity>
 {
@@ -16,7 +16,7 @@ public class GenericCacheInvalidator<TEntity> : BaseCacheInvalidator<TEntity>
         return GetCacheKey(parameters);
     }
 
-    public new void AddToListCacheKeys(string cacheKey)
+    public void AddToListCacheKeys(string cacheKey)
     {
         base.AddToListCacheKeys(cacheKey);
     }

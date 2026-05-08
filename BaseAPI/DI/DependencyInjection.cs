@@ -1,6 +1,7 @@
 namespace BaseAPI.DI
 {
     using Application.Common.ElasticSearch;
+    using Application.Features.Auth.Command.Login;
     using Application.IGenericRepository;
     using Application.IService;
     using Application.IUnitOfWork;
@@ -42,6 +43,14 @@ namespace BaseAPI.DI
     using System.Reflection;
     using System.Text;
     using System.Threading.RateLimiting;
+    using Domain.KeyHandle;
+    using Microsoft.IdentityModel.Tokens;
+    using Microsoft.OpenApi.Models;
+    using Microsoft.AspNetCore.DataProtection;
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.AspNetCore.OpenApi;
+    using MediatR;
+
 #pragma warning disable
     public class DependencyInjection
     {
@@ -51,12 +60,12 @@ namespace BaseAPI.DI
             services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssembly(typeof(IUnitOfWork).Assembly);
+                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(Application.Common.Behaviors.TransactionRollbackBehavior<,>));
             });
             #endregion
 
             #region Service Configuration
             services.AddSingleton<IJWTService, JWTService>();
-            services.AddScoped<IGenerateCodeService, GenerateCodeService>();
             #endregion
 
             #region Repository Configuration
@@ -120,8 +129,6 @@ namespace BaseAPI.DI
 
             services.AddDbContext<QueueDbContext>();
 
-            EnsurePersistentDatabaseConnection(services);
-
             #endregion
 
             #region Email Settings
@@ -136,10 +143,10 @@ namespace BaseAPI.DI
 
                 services.AddMassTransit(x =>
                 {
-                    x.AddConsumer<EmailConsumer>();
-                    x.AddConsumer<EmailSendFileConsumer>();
-                    x.AddConsumer<DbActionConsumer>();
-                    x.AddConsumer<GenericQueueConsumer>();
+                    // x.AddConsumer<EmailConsumer>();
+                    // x.AddConsumer<EmailSendFileConsumer>();
+                    // x.AddConsumer<DbActionConsumer>();
+                    // x.AddConsumer<GenericQueueConsumer>();
                     x.UsingRabbitMq((context, cfg) =>
                     {
                         cfg.Host(rabbitSettings.HostName, rabbitSettings.VirtualHost, h =>
@@ -148,6 +155,7 @@ namespace BaseAPI.DI
                             h.Password(rabbitSettings.Password);
                         });
 
+/*
                         cfg.ReceiveEndpoint("email-queue", e =>
                         {
                             e.ConfigureConsumer<EmailConsumer>(context);
@@ -164,6 +172,7 @@ namespace BaseAPI.DI
                             e.PrefetchCount = 20;
                             e.ConcurrentMessageLimit = 10;
                         });
+*/
 
                     });
                 });
@@ -171,9 +180,7 @@ namespace BaseAPI.DI
 
             #endregion
 
-            #region Background Service
-            //services.AddHostedService<DepreciationBackgroundService>();
-            #endregion
+            // services.AddHostedService<DepreciationBackgroundService>();
 
             #region UNIT OF WORK
             services.AddScoped<IUnitOfWork>(provider =>
@@ -237,6 +244,7 @@ namespace BaseAPI.DI
             });
 
             #endregion
+
             #region Elasticsearch
 
             services.AddSingleton<ElasticsearchClient>(sp =>
@@ -256,13 +264,147 @@ namespace BaseAPI.DI
 
             #endregion
 
-        }
+            #region HTTP & JSON
+            services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            });
+            services.AddHttpClient();
+            services.AddHttpContextAccessor();
+            services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
+            services.AddEndpointsApiExplorer();
+            services.AddDataProtection()
+                    .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys"))
+                    .SetApplicationName("SourceBase");
+            #endregion
 
-        private static void EnsurePersistentDatabaseConnection(IServiceCollection services)
-        {
-            using var serviceProvider = services.BuildServiceProvider();
-            var dbContext = serviceProvider.GetRequiredService<DBContext>();
-            dbContext.Database.OpenConnection(); 
+            #region JWT & AUTH
+            var jwtSection = configuration.GetSection("JwtSettings");
+            services.Configure<JwtSettings>(jwtSection);
+            var jwtSettings = jwtSection.Get<JwtSettings>();
+            services.AddSingleton(jwtSettings);
+
+            services.AddSingleton<IAuthorizationPolicyProvider, DynamicPermissionPolicyProvider>();
+            services.AddScoped<IAuthorizationHandler, AnyPolicyHandler>();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key))
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = context =>
+                    {
+                        context.NoResult();
+                        context.Response.StatusCode = 401;
+                        context.Response.ContentType = "application/json";
+                        return context.Response.WriteAsync("{\"error\":\"Token không hợp lệ hoặc đã hết hạn.\"}");
+                    },
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = 401;
+                        context.Response.ContentType = "application/json";
+                        return context.Response.WriteAsync(JsonConvert.SerializeObject(new ApiResponse<string>
+                        {
+                            StatusCode = StatusCode.Unauthorized,
+                            Message = "Bạn chưa đăng nhập hoặc token không hợp lệ.",
+                            Data = null
+                        }));
+                    },
+                    OnForbidden = context =>
+                    {
+                        context.Response.StatusCode = 403;
+                        context.Response.ContentType = "application/json";
+                        var response = new ApiResponse<string>
+                        {
+                            StatusCode = StatusCode.Forbidden,
+                            Message = "Bạn không có quyền truy cập vào tài nguyên này.",
+                            Data = null
+                        };
+                        return context.Response.WriteAsync(JsonConvert.SerializeObject(response));
+                    }
+                };
+            });
+
+            services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            });
+            #endregion
+
+            #region OPENAPI
+            services.AddOpenApi("v1", options =>
+            {
+                options.AddDocumentTransformer((document, context, cancellationToken) =>
+                {
+                    document.Info = new OpenApiInfo
+                    {
+                        Title = "BaseAPI",
+                        Version = "v1",
+                        Description = "API dùng JWT và test bằng Scalar"
+                    };
+
+                    document.Components ??= new OpenApiComponents();
+                    document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+                    {
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "bearer",
+                        BearerFormat = "JWT",
+                        In = ParameterLocation.Header,
+                        Name = "Authorization",
+                        Description = "Nhập 'Bearer {JWT_TOKEN}'"
+                    };
+
+                    document.SecurityRequirements.Add(new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            new List<string>()
+                        }
+                    });
+
+                    return Task.CompletedTask;
+                });
+            });
+            #endregion
+
+            #region CORS
+            services.AddCors(cors =>
+            {
+                cors.AddPolicy("Allow", policy =>
+                {
+                    policy
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
+            });
+            #endregion
+
         }
     }
 }

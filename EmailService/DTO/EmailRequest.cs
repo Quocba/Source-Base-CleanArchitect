@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,8 +8,8 @@ namespace EmailService.DTO
 {
     public class EmailRequest<T>
     {
-        public required string To { get; set; }
-        public required string Subject { get; set; }
-        public required T Body { get; set; }
+        public string To { get; set; }
+        public string Subject { get; set; }
+        public T Body { get; set; }
     }
 }

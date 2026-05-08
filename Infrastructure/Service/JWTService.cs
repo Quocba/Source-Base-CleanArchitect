@@ -1,5 +1,6 @@
 using Application.IService;
 using Domain.Config;
+using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,7 +19,7 @@ public class JWTService :  IJWTService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public string GenerateToken(IEnumerable<Claim> customClaims)
+    public string GenerateToken(User user)
     {
         var httpContext = _httpContextAccessor.HttpContext;
 
@@ -39,12 +40,50 @@ public class JWTService :  IJWTService
 
             fingerprint = GenerateFingerprint(httpContext);
         }
-
-        var claimsList = new List<Claim>(customClaims)
+        var employeeId = user.Employees?.FirstOrDefault()?.Id.ToString() ?? string.Empty;
+        var claims = new List<Claim>
         {
+            new Claim(ClaimTypes.NameIdentifier, employeeId),
+            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
+            new Claim(ClaimTypes.Role, user.Role.Name),
             new Claim("ip", ip),
             new Claim("fp", fingerprint)
         };
+
+        var mainEmployee = user.Employees?.FirstOrDefault();
+        if (mainEmployee?.Position != null)
+        {
+            var position = mainEmployee.Position;
+            claims.Add(new Claim("position", position.Name ?? string.Empty));
+
+            if (position.Permissions != null && position.Permissions.Any())
+            {
+                var positionPermissions = position.Permissions
+                    .Select(p => $"{NormalizePermissionKey(p.Module)}.{p.Action.ToUpperInvariant()}")
+                    .Distinct()
+                    .ToList();
+
+                claims.Add(new Claim("position_permission_count", positionPermissions.Count.ToString()));
+                claims.Add(new Claim("position_permissions", string.Join(",", positionPermissions)));
+            }
+        }
+
+        // Tối ưu: Chỉ xử lý quyền phòng ban nếu thực sự có dữ liệu được Include
+        if (mainEmployee?.Department?.Employees != null)
+        {
+            var departmentPermissions = mainEmployee.Department.Employees
+                .Where(e => e.Position?.Permissions != null)
+                .SelectMany(e => e.Position.Permissions)
+                .Select(p => $"{NormalizePermissionKey(p.Module)}.{p.Action.ToUpperInvariant()}")
+                .Distinct()
+                .ToList();
+
+            if (departmentPermissions.Any())
+            {
+                claims.Add(new Claim("department_permission_count", departmentPermissions.Count.ToString()));
+                claims.Add(new Claim("department_permissions", string.Join(",", departmentPermissions)));
+            }
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -52,7 +91,7 @@ public class JWTService :  IJWTService
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
-            claims: claimsList,
+            claims: claims,
             expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpireMinutes),
             signingCredentials: creds
         );

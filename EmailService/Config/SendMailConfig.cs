@@ -1,12 +1,12 @@
-namespace EmailService.Config
+﻿namespace EmailService.Config
 {
     public class SendMailConfig
     {
-        public required string SmtpServer { get; set; }
+        public string SmtpServer { get; set; }
         public int Port { get; set; }
-        public required string SenderName { get; set; }
-        public required string SenderEmail { get; set; }
-        public required string Username { get; set; }
-        public required string Password { get; set; }
+        public string SenderName { get; set; }
+        public string SenderEmail { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
     }
 }

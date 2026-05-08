@@ -1,4 +1,4 @@
-﻿using Application.IGenericRepository;
+using Application.IGenericRepository;
 using Domain.Entities.Enum;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -50,8 +50,7 @@ namespace Infrastructure.GenericRepository
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
 
-                Console.WriteLine($"[QUEUE_LOG] Action: {actionType}, Entity: {typeof(T).Name}");
-                Console.WriteLine($"[QUEUE_LOG] Payload: {jsonPayload}");
+
 
                 var msg = new GenericQueueMessage
                 {
@@ -66,7 +65,7 @@ namespace Infrastructure.GenericRepository
             {
                 var errorMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 _logger.LogError($"EnqueueRangeAsync {typeof(T).Name} Error: {errorMsg}");
-                Console.WriteLine($"[QUEUE_ERROR] {errorMsg}");
+
                 throw;
             }
         }
@@ -80,8 +79,7 @@ namespace Infrastructure.GenericRepository
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
 
-                Console.WriteLine($"[QUEUE_LOG] Action: {actionType}, Entity: {typeof(T).Name}");
-                Console.WriteLine($"[QUEUE_LOG] Payload: {jsonPayload}");
+
 
                 var msg = new GenericQueueMessage
                 {
@@ -96,7 +94,7 @@ namespace Infrastructure.GenericRepository
             {
                 var errorMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
                 _logger.LogError($"PublishAsync {typeof(T).Name} Error: {errorMsg}");
-                Console.WriteLine($"[QUEUE_ERROR] {errorMsg}");
+
                 throw;
             }
         }

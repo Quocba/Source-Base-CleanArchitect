@@ -1,4 +1,5 @@
-using Domain.Config;
+﻿using Domain.Config;
+using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace Application.IService
 {
     public interface IJWTService
     {
-        string GenerateToken(IEnumerable<Claim> claims);
+        string GenerateToken(User user);
         string GenerateFingerprint(HttpContext context);
         string? GetUserId(ClaimsPrincipal user);
         string? GetUser();
