@@ -9,21 +9,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
-
+#pragma warning disable
 namespace Application.Features.Auth.Command.Login
 {
     public class LoginCommandHandle(IUnitOfWork.IUnitOfWork _unitOfWork,
-                                    ILogger<LoginCommandHandle> _logger,
+                                    ILogger<LoginCommand> _logger,
                                     IJWTService _jwtService,
-                                    IMemoryCache _cache)
+                                    Microsoft.Extensions.Caching.Memory.IMemoryCache _cache)
         : IRequestHandler<LoginCommand, ApiResponse<LoginResponse>>
     {
         private static readonly System.Threading.SemaphoreSlim _semaphore = new(1, 1);
 
-        public async Task<ApiResponse<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
+        async Task<ApiResponse<LoginResponse>> IRequestHandler<LoginCommand, ApiResponse<LoginResponse>>.Handle(LoginCommand request, CancellationToken cancellationToken)
         {
             try
             {
@@ -39,14 +40,14 @@ namespace Application.Features.Auth.Command.Login
                             userObj = await _unitOfWork
                                 .GetRepository<Domain.Entities.User>()
                                 .SingleOrDefaultAsync(
-                                    predicate: x => x.UserName == request.UserName && x.IsDeleted == false,
+                                    predicate: x => x.UserName == request.UserName,
                                     selector: x => new
                                     {
-                                        x.Id,
                                         x.UserName,
                                         x.Password,
                                         x.IsLock,
-                                        RoleName = x.Role.Name
+                                        RoleName = x.Role.Name,
+                                        Employee = x.Employees.Select(e => new { e.Id, e.Avatar, e.FullName }).FirstOrDefault()
                                     });
 
                             if (userObj != null)
@@ -87,15 +88,18 @@ namespace Application.Features.Auth.Command.Login
                     return new ApiResponse<LoginResponse>
                     {
                         StatusCode = StatusCode.BadRequest,
-                        Message = "Tài khoản của bạn đã bị khóa"
+                        Message = "Tài khoản của bạn đã bị khóa",
+                        Data = null
                     };
                 }
 
                 var userEntity = new Domain.Entities.User
                 {
-                    Id = userDto.Id,
                     UserName = userDto.UserName,
-                    Role = new Domain.Entities.Role { Name = userDto.RoleName }
+                    Role = new Domain.Entities.Role { Name = userDto.RoleName },
+                    Employees = userDto.Employee != null
+                        ? new List<Domain.Entities.Employee> { new Domain.Entities.Employee { Id = userDto.Employee.Id } }
+                        : new List<Domain.Entities.Employee>()
                 };
 
                 var token = _jwtService.GenerateToken(userEntity);
@@ -107,6 +111,8 @@ namespace Application.Features.Auth.Command.Login
                     Data = new LoginResponse
                     {
                         UserName = userDto.UserName,
+                        Avatar = userDto.Employee?.Avatar,
+                        FullName = userDto.Employee?.FullName,
                         Token = token,
                         Role = userDto.RoleName
                     }
@@ -114,12 +120,8 @@ namespace Application.Features.Auth.Command.Login
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Login Feature Error]");
-                return new ApiResponse<LoginResponse>
-                {
-                    StatusCode = StatusCode.InternalServerError,
-                    Message = "Có lỗi xảy ra trong quá trình đăng nhập"
-                };
+                _logger.LogError(ex, "[Login Feature]");
+                throw;
             }
         }
     }

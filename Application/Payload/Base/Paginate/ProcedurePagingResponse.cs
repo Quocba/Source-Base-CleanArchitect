@@ -1,4 +1,4 @@
-﻿namespace Application.Payload.Base.Paginate
+namespace Application.Payload.Base.Paginate
 {
     public class ProcedurePagingResponse<T>
     {
@@ -6,6 +6,7 @@
         public int PageSize { get; set; }
         public int TotalRecord { get; set; }
         public int TotalPages => (int)Math.Ceiling((double)TotalRecord / PageSize);
+        public decimal? TotalAmounts { get; set; }
         public List<T> Items { get; set; }
     }
 }

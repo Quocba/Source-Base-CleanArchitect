@@ -1,8 +1,6 @@
-﻿using Application.Payload.Base.Paginate;
+using Application.Payload.Base.Paginate;
 using Application.Payload.Response.Role;
-using Dapper;
 using Domain.Payload.Base;
-using Infrastructure.StoreProcedure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -18,26 +16,26 @@ namespace Application.Features.Role.Queries.Gets
     {
         public async Task<ApiResponse<ProcedurePagingResponse<RoleResponse>>> Handle(GetRoleQuery request, CancellationToken cancellationToken)
         {
-            using var connection = _unitOfWork.Context.Database.GetDbConnection();
+            var query = _unitOfWork.Context.Set<Domain.Entities.Role>().AsQueryable();
 
-            if (connection.State != System.Data.ConnectionState.Open)
+            if (!string.IsNullOrEmpty(request.Search))
             {
-                await connection.OpenAsync(cancellationToken);
+                query = query.Where(x => x.Name!.Contains(request.Search));
             }
 
-            var rows = await connection.QueryAsync<dynamic>(
-                DBProcedures.GetRoles,
-                new
-                {
-                    PageNumber = request.PageNumber,
-                    PageSize = request.PageSize,
-                    Search = request.Search,
-                    Filter = request.Filter
-                },
-                commandType: System.Data.CommandType.StoredProcedure
-            );
+            var totalRecord = await query.CountAsync(cancellationToken);
 
-            if (!rows.Any())
+            var items = await query.OrderBy(x => x.Id)
+                                   .Skip((request.PageNumber - 1) * request.PageSize)
+                                   .Take(request.PageSize)
+                                   .Select(x => new RoleResponse
+                                   {
+                                       Id = x.Id,
+                                       Name = x.Name
+                                   })
+                                   .ToListAsync(cancellationToken);
+
+            if (!items.Any())
             {
                 return new ApiResponse<ProcedurePagingResponse<RoleResponse>>
                 {
@@ -53,19 +51,12 @@ namespace Application.Features.Role.Queries.Gets
                 };
             }
 
-            var first = rows.First();
-            int totalRecord = first.TotalRecords;
-
             var response = new ProcedurePagingResponse<RoleResponse>
             {
                 PageNumber = request.PageNumber,
                 PageSize = request.PageSize,
                 TotalRecord = totalRecord,
-                Items = rows.Select(x => new RoleResponse
-                {
-                    Id = x.Id,
-                    Name = x.Name
-                }).ToList()
+                Items = items
             };
 
             return new ApiResponse<ProcedurePagingResponse<RoleResponse>>

@@ -37,7 +37,7 @@ app.UseMiddleware<SecurityMiddleware>();
 app.UseStaticFiles();
 app.UseSharedStaticFiles(builder.Configuration);
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseAuthentication();
 //app.UseMiddleware<TokenFingerprintMiddleware>();
 app.UseAuthorization();

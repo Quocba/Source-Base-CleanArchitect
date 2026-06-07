@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-deploy:
+  deploy-prod:
     runs-on: ubuntu-latest
 
     steps:
@@ -56,3 +56,53 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module WebAdministration; $path = 'C:\inetpub\wwwroot\NgocDaiBackend\${{ env.DEPLOY_VERSION }}\NgocDai'; if (-Not (Test-Path $path)) { throw 'Loi: Thu muc khong ton tai' }; Copy-Item -Path 'C:\inetpub\wwwroot\NgocDaiBackend\Sharing\*.json' -Destination $path -Force; Set-ItemProperty 'IIS:\Sites\NGOCDAIAPI' -Name physicalPath -Value $path; C:\Windows\System32\inetsrv\appcmd.exe recycle apppool /apppool.name:NGOCDAIAPI; Start-Sleep -Seconds 2; C:\Windows\System32\inetsrv\appcmd.exe start apppool /apppool.name:NGOCDAIAPI; C:\Windows\System32\inetsrv\appcmd.exe start site /site.name:NGOCDAIAPI; Write-Host 'Deploy thanh cong!'"
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.0
+
+      - name: Publish project
+        run: dotnet publish BaseAPI/API.csproj -c Release -o publish -r win-x64 --self-contained false
+
+      # 🗑️ Xóa file appsettings để khi SCP không đè lên file của VPS
+      - name: Remove appsettings
+        run: rm -f publish/appsettings*.json
+
+      # 🛑 Dừng IIS Dev trước khi copy để tránh lỗi khóa file
+      - name: Stop IIS Dev
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'SilentlyContinue'; C:\Windows\System32\inetsrv\appcmd.exe stop site /site.name:NgocDaiAPIDev; C:\Windows\System32\inetsrv\appcmd.exe stop apppool /apppool.name:NgocDaiAPIDev; exit 0"
+
+      # 📦 Copy file lên VPS đè trực tiếp vào thư mục Dev
+      - name: Copy to VPS Dev
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "publish"
+          target: "C:/inetpub/wwwroot/NgocDaiAPIDev/NgocDai"
+          strip_components: 1
+          
+      # 🚀 Khởi động lại IIS Site Dev
+      - name: Start IIS Dev
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'SilentlyContinue'; C:\Windows\System32\inetsrv\appcmd.exe start apppool /apppool.name:NgocDaiAPIDev; C:\Windows\System32\inetsrv\appcmd.exe start site /site.name:NgocDaiAPIDev; Write-Host 'Deploy Dev thanh cong!'; exit 0"

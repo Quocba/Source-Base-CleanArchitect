@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -24,4 +24,6 @@ public class User
 
     [ForeignKey(nameof(RoleId))]
     public virtual Role Role { get; set; } = null!;
+
+    public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
 }

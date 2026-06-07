@@ -66,6 +66,7 @@ namespace BaseAPI.DI
 
             #region Service Configuration
             services.AddSingleton<IJWTService, JWTService>();
+            services.AddScoped<IGenerateCodeService, GenerateCodeService>();
             #endregion
 
             #region Repository Configuration
@@ -143,10 +144,10 @@ namespace BaseAPI.DI
 
                 services.AddMassTransit(x =>
                 {
-                    // x.AddConsumer<EmailConsumer>();
-                    // x.AddConsumer<EmailSendFileConsumer>();
-                    // x.AddConsumer<DbActionConsumer>();
-                    // x.AddConsumer<GenericQueueConsumer>();
+                    x.AddConsumer<EmailConsumer>();
+                    x.AddConsumer<EmailSendFileConsumer>();
+                    x.AddConsumer<DbActionConsumer>();
+                    x.AddConsumer<GenericQueueConsumer>();
                     x.UsingRabbitMq((context, cfg) =>
                     {
                         cfg.Host(rabbitSettings.HostName, rabbitSettings.VirtualHost, h =>
@@ -155,7 +156,6 @@ namespace BaseAPI.DI
                             h.Password(rabbitSettings.Password);
                         });
 
-/*
                         cfg.ReceiveEndpoint("email-queue", e =>
                         {
                             e.ConfigureConsumer<EmailConsumer>(context);
@@ -172,7 +172,6 @@ namespace BaseAPI.DI
                             e.PrefetchCount = 20;
                             e.ConcurrentMessageLimit = 10;
                         });
-*/
 
                     });
                 });
@@ -180,7 +179,8 @@ namespace BaseAPI.DI
 
             #endregion
 
-            // services.AddHostedService<DepreciationBackgroundService>();
+            #region Background Service
+            #endregion
 
             #region UNIT OF WORK
             services.AddScoped<IUnitOfWork>(provider =>
@@ -222,29 +222,6 @@ namespace BaseAPI.DI
             services.AddScoped<IGoogleDriveService, GoogleDriveService>();
             #endregion
 
-            #region CUSTOM MODELSTATE RESPONSE
-            services.Configure<ApiBehaviorOptions>(cf =>
-            {
-                cf.InvalidModelStateResponseFactory = context =>
-                {
-                    var firstError = context.ModelState
-                        .SelectMany(x => x.Value.Errors)
-                        .Select(e => e.ErrorMessage)
-                        .FirstOrDefault();
-
-                    var response = new ApiResponse<object>
-                    {
-                        StatusCode = StatusCodes.Status400BadRequest,
-                        Message = firstError ?? "Dữ liệu không hợp lệ",
-                        Data = null
-                    };
-
-                    return new BadRequestObjectResult(response);
-                };
-            });
-
-            #endregion
-
             #region Elasticsearch
 
             services.AddSingleton<ElasticsearchClient>(sp =>
@@ -265,17 +242,37 @@ namespace BaseAPI.DI
             #endregion
 
             #region HTTP & JSON
-            services.AddControllers().AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-            });
+            services.AddControllers()
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var firstError = context.ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                            .FirstOrDefault();
+
+                        var response = new ApiResponse<object>
+                        {
+                            StatusCode = StatusCodes.Status400BadRequest,
+                            Message = firstError ?? "Dữ liệu không hợp lệ",
+                            Data = null
+                        };
+
+                        return new BadRequestObjectResult(response);
+                    };
+                })
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                });
             services.AddHttpClient();
             services.AddHttpContextAccessor();
             services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
             services.AddEndpointsApiExplorer();
             services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys"))
-                    .SetApplicationName("SourceBase");
+                    .SetApplicationName("NgocDaiAPI");
             #endregion
 
             #region JWT & AUTH

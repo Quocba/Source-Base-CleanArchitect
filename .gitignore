@@ -394,3 +394,5 @@ GenerateSourceBase.ps1
 
 # Load Test Scripts
 LoadTestScript/
+Application/StoreProcedure/Sql/SP_GetLedger.sql
+Application/StoreProcedure/Sql/SP_GetLedger.sql
