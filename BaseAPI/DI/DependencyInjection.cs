@@ -50,6 +50,8 @@ namespace BaseAPI.DI
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.OpenApi;
     using MediatR;
+    using Application.OCRHelper;
+    using Application.Helper;
 
 #pragma warning disable
     public class DependencyInjection
@@ -400,6 +402,12 @@ namespace BaseAPI.DI
                         .AllowAnyHeader();
                 });
             });
+            #endregion
+
+
+            #region Helper
+            services.AddScoped<IOCRHelper, TesseractOcrHelper>();
+            services.AddScoped<DataHelper>();
             #endregion
 
         }

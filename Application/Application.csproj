@@ -39,12 +39,19 @@
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.2.2" />
     <PackageReference Include="MediatR" Version="14.0.0" />
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+    <PackageReference Include="Tesseract" Version="5.2.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="Infrastructure">
       <HintPath>..\Infrastructure\obj\Debug\net9.0\ref\Infrastructure.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="OCRHelper\Tesseract\vie.traineddata">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
