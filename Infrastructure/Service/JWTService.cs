@@ -40,50 +40,17 @@ public class JWTService :  IJWTService
 
             fingerprint = GenerateFingerprint(httpContext);
         }
-        var employeeId = user.Employees?.FirstOrDefault()?.Id.ToString() ?? string.Empty;
+        var userId = user.Id.ToString();
+        var roleName = user.Role?.Name ?? "User";
+
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, employeeId),
+            new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
-            new Claim(ClaimTypes.Role, user.Role.Name),
+            new Claim(ClaimTypes.Role, roleName),
             new Claim("ip", ip),
             new Claim("fp", fingerprint)
         };
-
-        var mainEmployee = user.Employees?.FirstOrDefault();
-        if (mainEmployee?.Position != null)
-        {
-            var position = mainEmployee.Position;
-            claims.Add(new Claim("position", position.Name ?? string.Empty));
-
-            if (position.Permissions != null && position.Permissions.Any())
-            {
-                var positionPermissions = position.Permissions
-                    .Select(p => $"{NormalizePermissionKey(p.Module)}.{p.Action.ToUpperInvariant()}")
-                    .Distinct()
-                    .ToList();
-
-                claims.Add(new Claim("position_permission_count", positionPermissions.Count.ToString()));
-                claims.Add(new Claim("position_permissions", string.Join(",", positionPermissions)));
-            }
-        }
-
-        // Tối ưu: Chỉ xử lý quyền phòng ban nếu thực sự có dữ liệu được Include
-        if (mainEmployee?.Department?.Employees != null)
-        {
-            var departmentPermissions = mainEmployee.Department.Employees
-                .Where(e => e.Position?.Permissions != null)
-                .SelectMany(e => e.Position.Permissions)
-                .Select(p => $"{NormalizePermissionKey(p.Module)}.{p.Action.ToUpperInvariant()}")
-                .Distinct()
-                .ToList();
-
-            if (departmentPermissions.Any())
-            {
-                claims.Add(new Claim("department_permission_count", departmentPermissions.Count.ToString()));
-                claims.Add(new Claim("department_permissions", string.Join(",", departmentPermissions)));
-            }
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

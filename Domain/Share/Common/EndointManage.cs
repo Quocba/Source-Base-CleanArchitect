@@ -1,5 +1,3 @@
-﻿using AngleSharp.Text;
-
 namespace Domain.Share.Common
 {
     public static class EndpointManage

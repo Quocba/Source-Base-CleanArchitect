@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Context
@@ -14,138 +12,163 @@ namespace Infrastructure.Context
         {
         }
 
-        public virtual DbSet<Department> Departments { get; set; }
-        public virtual DbSet<Employee> Employees { get; set; }
-        public virtual DbSet<Permission> Permissions { get; set; }
-        public virtual DbSet<Position> Positions { get; set; }
+        public virtual DbSet<Product> Products { get; set; }
+        public virtual DbSet<Category> Categories { get; set; }
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<Role> Roles { get; set; }
+        public virtual DbSet<Permission> Permissions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Department>(entity =>
+            #region Category Configuration
+            var electronicsCatId = Guid.Parse("11111111-aaaa-bbbb-cccc-111111111111");
+            var householdCatId = Guid.Parse("22222222-aaaa-bbbb-cccc-222222222222");
+            var fashionCatId = Guid.Parse("33333333-aaaa-bbbb-cccc-333333333333");
+
+            modelBuilder.Entity<Category>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("PK__Departme__3214EC2716659579");
+                entity.HasKey(e => e.Id);
+                entity.ToTable("Categories");
 
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("ID");
-                entity.Property(e => e.Code).HasMaxLength(255);
-                entity.Property(e => e.CreateDate).HasColumnType("datetime");
-                entity.Property(e => e.Description).HasMaxLength(255);
-                entity.Property(e => e.LastModifiedDate).HasColumnType("datetime");
-                entity.Property(e => e.Name).HasMaxLength(255);
+                entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(500);
 
-                entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.DepartmentCreatedByNavigations)
-                    .HasForeignKey(d => d.CreatedBy)
-                    .HasConstraintName("FK__Departmen__Creat__1F98B2C1");
+                entity.HasIndex(e => e.Code).IsUnique();
 
-                entity.HasOne(d => d.LastModifiedByNavigation).WithMany(p => p.DepartmentLastModifiedByNavigations)
-                    .HasForeignKey(d => d.LastModifiedBy)
-                    .HasConstraintName("FK__Departmen__LastM__208CD6FA");
+                entity.HasData(
+                    new Category
+                    {
+                        Id = electronicsCatId,
+                        Code = "CAT_DIENTU",
+                        Name = "Thiết bị điện tử",
+                        Description = "Điện thoại, laptop, phụ kiện công nghệ",
+                        IsActive = true,
+                        CreatedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    },
+                    new Category
+                    {
+                        Id = householdCatId,
+                        Code = "CAT_GIADUNG",
+                        Name = "Đồ gia dụng thông minh",
+                        Description = "Thiết bị nhà bếp và đời sống gia đình",
+                        IsActive = true,
+                        CreatedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    },
+                    new Category
+                    {
+                        Id = fashionCatId,
+                        Code = "CAT_THOITRANG",
+                        Name = "Thời trang & Phụ kiện",
+                        Description = "Quần áo, giày dép cao cấp",
+                        IsActive = true,
+                        CreatedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    }
+                );
             });
+            #endregion
 
-            modelBuilder.Entity<Employee>(entity =>
+            #region Product Configuration
+            modelBuilder.Entity<Product>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("PK__Employee__3214EC279E2A15F7");
+                entity.HasKey(e => e.Id);
+                entity.ToTable("Products");
 
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("ID");
-                entity.Property(e => e.Address).HasMaxLength(255);
-                entity.Property(e => e.Avatar).HasMaxLength(255);
-                entity.Property(e => e.Code).HasMaxLength(100);
-                entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-                entity.Property(e => e.DepartmentId).HasColumnName("DepartmentID");
-                entity.Property(e => e.Email).HasMaxLength(255);
-                entity.Property(e => e.FullName).HasMaxLength(100);
-                entity.Property(e => e.Gender).HasMaxLength(50);
+                entity.Property(e => e.Code).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.Price).HasPrecision(18, 2);
 
-                entity.Property(e => e.LastModifiedDate).HasColumnType("datetime");
-                entity.Property(e => e.Phone).HasMaxLength(15);
-                entity.Property(e => e.PositionId).HasColumnName("PositionID");
-                entity.Property(e => e.Status).HasMaxLength(255);
-                entity.Property(e => e.UserId).HasColumnName("UserID");
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => new { e.IsDeleted, e.Status, e.CreatedDate });
 
-                entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.InverseCreatedByNavigation)
-                    .HasForeignKey(d => d.CreatedBy)
-                    .HasConstraintName("FK__Employees__Creat__2180FB33");
+                entity.HasOne(d => d.Category)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.CategoryId)
+                    .OnDelete(DeleteBehavior.SetNull);
 
-                entity.HasOne(d => d.Department).WithMany(p => p.Employees)
-                    .HasForeignKey(d => d.DepartmentId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__Employees__Depar__1CBC4616");
-
-                entity.HasOne(d => d.LastModifiedByNavigation).WithMany(p => p.InverseLastModifiedByNavigation)
-                    .HasForeignKey(d => d.LastModifiedBy)
-                    .HasConstraintName("FK__Employees__LastM__22751F6C");
-
-                entity.HasOne(d => d.Position).WithMany(p => p.Employees)
-                    .HasForeignKey(d => d.PositionId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__Employees__Posit__1DB06A4F");
-
-                entity.HasOne(d => d.User).WithMany(p => p.Employees)
-                    .HasForeignKey(d => d.UserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__Employees__UserI__1EA48E88");
+                entity.HasData(
+                    new Product
+                    {
+                        Id = Guid.Parse("aaaaaaaa-1111-2222-3333-aaaaaaaaaaaa"),
+                        Code = "PROD-001",
+                        Name = "Bàn phím cơ không dây Bluetooth 5.0",
+                        Description = "Bàn phím cơ Custom 75%, hot-swap, RGB",
+                        Price = 1450000,
+                        StockQuantity = 120,
+                        Status = ProductStatus.Active,
+                        CategoryId = electronicsCatId,
+                        CreatedDate = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    },
+                    new Product
+                    {
+                        Id = Guid.Parse("bbbbbbbb-1111-2222-3333-bbbbbbbbbbbb"),
+                        Code = "PROD-002",
+                        Name = "Chuột gaming công thái học không dây",
+                        Description = "Cảm biến quang học 26,000 DPI, siêu nhẹ 55g",
+                        Price = 1890000,
+                        StockQuantity = 85,
+                        Status = ProductStatus.Active,
+                        CategoryId = electronicsCatId,
+                        CreatedDate = new DateTime(2026, 1, 3, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    },
+                    new Product
+                    {
+                        Id = Guid.Parse("cccccccc-1111-2222-3333-cccccccccccc"),
+                        Code = "PROD-003",
+                        Name = "Nồi chiên không dầu điện tử 6.5L",
+                        Description = "Công nghệ đốt nóng đối lưu 360 độ, lòng nồi chống dính",
+                        Price = 2200000,
+                        StockQuantity = 40,
+                        Status = ProductStatus.Active,
+                        CategoryId = householdCatId,
+                        CreatedDate = new DateTime(2026, 1, 4, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    },
+                    new Product
+                    {
+                        Id = Guid.Parse("dddddddd-1111-2222-3333-dddddddddddd"),
+                        Code = "PROD-004",
+                        Name = "Máy hút bụi cầm tay lực hút 20,000Pa",
+                        Description = "Pin sạc lithium-ion 4000mAh, đa đầu hút tiện lợi",
+                        Price = 1650000,
+                        StockQuantity = 60,
+                        Status = ProductStatus.Active,
+                        CategoryId = householdCatId,
+                        CreatedDate = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    },
+                    new Product
+                    {
+                        Id = Guid.Parse("eeeeeeee-1111-2222-3333-eeeeeeeeeeee"),
+                        Code = "PROD-005",
+                        Name = "Áo khoác gió thể thao chống nước",
+                        Description = "Chất liệu Gore-Tex thoáng khí, chống gió bụi tối ưu",
+                        Price = 750000,
+                        StockQuantity = 250,
+                        Status = ProductStatus.Active,
+                        CategoryId = fashionCatId,
+                        CreatedDate = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc),
+                        IsDeleted = false
+                    }
+                );
             });
+            #endregion
 
-            modelBuilder.Entity<Permission>(entity =>
-            {
-                entity.HasKey(e => e.Id).HasName("PK__Permissi__3214EC2784BBA37E");
-
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("ID");
-                entity.Property(e => e.Action).HasMaxLength(255);
-                entity.Property(e => e.Description).HasMaxLength(255);
-                entity.Property(e => e.Module).HasMaxLength(255);
-                entity.Property(e => e.Name).HasMaxLength(255);
-            });
-
-            modelBuilder.Entity<Position>(entity =>
-            {
-                entity.HasKey(e => e.Id).HasName("PK__Position__3214EC2716241E83");
-
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("ID");
-                entity.Property(e => e.Description).HasMaxLength(255);
-                entity.Property(e => e.Name).HasMaxLength(255);
-
-                entity.HasMany(d => d.Permissions).WithMany(p => p.Positions)
-                    .UsingEntity<Dictionary<string, object>>(
-                        "PositionPermission",
-                        r => r.HasOne<Permission>().WithMany()
-                            .HasForeignKey("PermissionId")
-                            .OnDelete(DeleteBehavior.ClientSetNull)
-                            .HasConstraintName("FK__PositionP__Permi__42E1EEFE"),
-                        l => l.HasOne<Position>().WithMany()
-                            .HasForeignKey("PositionId")
-                            .OnDelete(DeleteBehavior.ClientSetNull)
-                            .HasConstraintName("FK__PositionP__Posit__41EDCAC5"),
-                        j =>
-                        {
-                            j.HasKey("PositionId", "PermissionId").HasName("PK__Position__8E41F5E9249D5E14");
-                            j.ToTable("PositionPermissions");
-                            j.IndexerProperty<Guid>("PositionId").HasColumnName("PositionID");
-                            j.IndexerProperty<Guid>("PermissionId").HasColumnName("PermissionID");
-                        });
-            });
-
+            #region Role & User Configuration
             var adminRoleId = Guid.Parse("11111111-1111-1111-1111-111111111111");
             var managerRoleId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
             modelBuilder.Entity<Role>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("PK__Role__3214EC27");
-
+                entity.HasKey(e => e.Id);
                 entity.ToTable("Role");
 
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("ID");
                 entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
 
                 entity.HasData(
@@ -154,66 +177,35 @@ namespace Infrastructure.Context
                 );
             });
 
-            var departmentId = Guid.Parse("33333333-3333-3333-3333-333333333333");
-            modelBuilder.Entity<Department>(entity =>
-            {
-                entity.HasData(new Department
-                {
-                    Id = departmentId,
-                    Name = "Phòng Kỹ Thuật",
-                    Code = "PKT",
-                    IsDeleted = false
-                });
-            });
-
-            var positionId = Guid.Parse("44444444-4444-4444-4444-444444444444");
-            modelBuilder.Entity<Position>(entity =>
-            {
-                entity.HasData(new Position
-                {
-                    Id = positionId,
-                    Name = "Nhân Viên",
-                    IsDeleted = false
-                });
-            });
-
-            modelBuilder.Entity<Employee>(entity =>
-            {
-                entity.HasData(new Employee
-                {
-                    Id = Guid.Parse("55555555-5555-5555-5555-555555555555"),
-                    FullName = "Nguyễn Văn A",
-                    Code = "NV001",
-                    UserId = Guid.Parse("69efb260-d55c-4835-89dc-521e3ceaabee"),
-                    DepartmentId = departmentId,
-                    PositionId = positionId,
-                    Status = "Active"
-                });
-            });
-
             modelBuilder.Entity<User>(entity =>
             {
-                entity.HasKey(e => e.Id).HasName("PK__Users__3214EC274465C354");
+                entity.HasKey(e => e.Id);
+                entity.ToTable("Users");
 
-                entity.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnName("ID");
-                entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-                entity.Property(e => e.LastModifiedDate).HasColumnType("datetime");
-                entity.Property(e => e.Password).HasMaxLength(255);
                 entity.Property(e => e.UserName).HasMaxLength(100);
-                entity.Property(e => e.RoleId).HasColumnName("RoleId");
+                entity.Property(e => e.Password).HasMaxLength(255);
 
-                entity.HasOne(d => d.Role).WithMany(p => p.Users)
+                entity.HasOne(d => d.Role)
+                    .WithMany(p => p.Users)
                     .HasForeignKey(d => d.RoleId)
-                    .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Users_Role_RoleId");
+                    .OnDelete(DeleteBehavior.ClientSetNull);
             });
+
+            modelBuilder.Entity<Permission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("Permissions");
+
+                entity.Property(e => e.Action).HasMaxLength(255);
+                entity.Property(e => e.Description).HasMaxLength(255);
+                entity.Property(e => e.Module).HasMaxLength(255);
+                entity.Property(e => e.Name).HasMaxLength(255);
+            });
+            #endregion
 
             OnModelCreatingPartial(modelBuilder);
         }
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
-
     }
 }

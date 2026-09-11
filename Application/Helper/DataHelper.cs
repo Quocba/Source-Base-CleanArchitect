@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,23 +16,23 @@ namespace Application.Helper
             try
             {
                 using var connection = _unitOfWork.Context.Database.GetDbConnection();
-                if (connection.State != System.Data.ConnectionState.Open)
+                if (connection.State != ConnectionState.Open)
                 {
                     await connection.OpenAsync(cancellationToken);
                 }
 
                 var rows = await connection.QueryAsync<dynamic>(
-                       procedure,
-                       parameters,
-                       commandType: System.Data.CommandType.StoredProcedure
-                    );
+                    procedure,
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
                 return rows;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Đã có lỗi xảy ra khi thực thi Procedure: {Procedure}", procedure);
-                throw; 
+                throw;
             }
         }
 
@@ -40,23 +41,23 @@ namespace Application.Helper
             try
             {
                 using var connection = _unitOfWork.Context.Database.GetDbConnection();
-                if (connection.State != System.Data.ConnectionState.Open)
+                if (connection.State != ConnectionState.Open)
                 {
                     await connection.OpenAsync(cancellationToken);
                 }
 
                 var rows = await connection.QueryAsync<T>(
-                       procedure,
-                       parameters,
-                       commandType: System.Data.CommandType.StoredProcedure
-                    );
+                    procedure,
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
 
                 return rows;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Đã có lỗi xảy ra khi thực thi Procedure: {Procedure}", procedure);
-                throw; 
+                throw;
             }
         }
     }

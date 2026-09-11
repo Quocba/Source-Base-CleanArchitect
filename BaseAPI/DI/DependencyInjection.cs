@@ -1,7 +1,6 @@
 namespace BaseAPI.DI
 {
     using Application.Common.ElasticSearch;
-    using Application.Features.Auth.Command.Login;
     using Application.IGenericRepository;
     using Application.IService;
     using Application.IUnitOfWork;
@@ -15,7 +14,7 @@ namespace BaseAPI.DI
     using EmailService.Config;
     using EmailService.Implement;
     using EmailService.Interface;
-    using FluentValidation.AspNetCore;
+    using RabbitMQContract.Consumer.Product;
     using Infrastructure.Context;
     using Infrastructure.Elasticsearch;
     using Infrastructure.GenericRepository;
@@ -150,6 +149,7 @@ namespace BaseAPI.DI
                     x.AddConsumer<EmailSendFileConsumer>();
                     x.AddConsumer<DbActionConsumer>();
                     x.AddConsumer<GenericQueueConsumer>();
+                    x.AddConsumer<ProductCreatedConsumer>();
                     x.UsingRabbitMq((context, cfg) =>
                     {
                         cfg.Host(rabbitSettings.HostName, rabbitSettings.VirtualHost, h =>
@@ -171,6 +171,13 @@ namespace BaseAPI.DI
                         cfg.ReceiveEndpoint("generic-queue", e =>
                         {
                             e.ConfigureConsumer<GenericQueueConsumer>(context);
+                            e.PrefetchCount = 20;
+                            e.ConcurrentMessageLimit = 10;
+                        });
+
+                        cfg.ReceiveEndpoint("product-created-queue", e =>
+                        {
+                            e.ConfigureConsumer<ProductCreatedConsumer>(context);
                             e.PrefetchCount = 20;
                             e.ConcurrentMessageLimit = 10;
                         });
@@ -355,9 +362,9 @@ namespace BaseAPI.DI
                 {
                     document.Info = new OpenApiInfo
                     {
-                        Title = "BaseAPI",
+                        Title = "BaseAPI Clean Architecture",
                         Version = "v1",
-                        Description = "API dùng JWT và test bằng Scalar"
+                        Description = "API theo chuẩn Clean Architecture với Stored Procedure phân trang nâng cao và Scalar UI"
                     };
 
                     document.Components ??= new OpenApiComponents();
@@ -385,6 +392,45 @@ namespace BaseAPI.DI
                             new List<string>()
                         }
                     });
+
+                    return Task.CompletedTask;
+                });
+
+                // Cung cấp Request Body Mẫu mặc định cho các Command (Tương tự Request Body mẫu trên Postman)
+                options.AddSchemaTransformer((schema, context, cancellationToken) =>
+                {
+                    if (context.JsonTypeInfo.Type == typeof(Application.Features.Products.Commands.CreateProduct.CreateProductCommand))
+                    {
+                        schema.Example = new Microsoft.OpenApi.Any.OpenApiObject
+                        {
+                            ["code"] = new Microsoft.OpenApi.Any.OpenApiString("PROD-DEMO-01"),
+                            ["name"] = new Microsoft.OpenApi.Any.OpenApiString("Bàn phím cơ Bluetooth RGB Pro"),
+                            ["description"] = new Microsoft.OpenApi.Any.OpenApiString("Bàn phím không dây 3 chế độ kết nối, switch cơ học gõ êm"),
+                            ["price"] = new Microsoft.OpenApi.Any.OpenApiDouble(1250000.0),
+                            ["stockQuantity"] = new Microsoft.OpenApi.Any.OpenApiInteger(100),
+                            ["status"] = new Microsoft.OpenApi.Any.OpenApiInteger(1)
+                        };
+                    }
+                    else if (context.JsonTypeInfo.Type == typeof(Application.Features.Products.Commands.EditProduct.EditProductCommand))
+                    {
+                        schema.Example = new Microsoft.OpenApi.Any.OpenApiObject
+                        {
+                            ["name"] = new Microsoft.OpenApi.Any.OpenApiString("Bàn phím cơ Bluetooth RGB Pro - Bản nâng cấp"),
+                            ["description"] = new Microsoft.OpenApi.Any.OpenApiString("Đã cập nhật pin 4000mAh và keycap PBT cao cấp"),
+                            ["price"] = new Microsoft.OpenApi.Any.OpenApiDouble(1390000.0),
+                            ["stockQuantity"] = new Microsoft.OpenApi.Any.OpenApiInteger(150),
+                            ["status"] = new Microsoft.OpenApi.Any.OpenApiInteger(1)
+                        };
+                    }
+                    else if (context.JsonTypeInfo.Type == typeof(Application.Features.Categories.Commands.CreateCategory.CreateCategoryCommand))
+                    {
+                        schema.Example = new Microsoft.OpenApi.Any.OpenApiObject
+                        {
+                            ["code"] = new Microsoft.OpenApi.Any.OpenApiString("CAT-PHUKIEN"),
+                            ["name"] = new Microsoft.OpenApi.Any.OpenApiString("Phụ kiện Máy tính & Gaming"),
+                            ["description"] = new Microsoft.OpenApi.Any.OpenApiString("Chuột, bàn phím, lót chuột, tai nghe gaming")
+                        };
+                    }
 
                     return Task.CompletedTask;
                 });

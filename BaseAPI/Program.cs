@@ -1,6 +1,7 @@
 using API.Middleware.GlobalLogger;
 using API.Middleware.JWTMidlleware;
 using BaseAPI.DI;
+using BaseAPI.Middleware;
 using BaseAPI.Middleware.JWTMidlleware;
 using BaseAPI.Middleware.SecurityLog;
 using Domain.Config;
@@ -27,9 +28,13 @@ var app = builder.Build();
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
+    options.Title = "Base Clean Architecture API";
     options.Theme = ScalarTheme.Saturn;
+    options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
 
+// Middleware tính toán thời gian thực thi (Timing) của API
+app.UseMiddleware<ResponseTimingMiddleware>();
 
 app.UseCors("Allow");
 app.UseMiddleware<SecurityMiddleware>();
@@ -46,4 +51,3 @@ app.MapControllers();
 app.Run();
 
 public record UserInfo(string Name, int Age, string Email);
-

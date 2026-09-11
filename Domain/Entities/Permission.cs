@@ -1,19 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 
 namespace Domain.Entities;
 
 public partial class Permission
 {
-    public Guid Id { get; set; }
-
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string? Name { get; set; }
-
     public string? Description { get; set; }
-
     public string? Module { get; set; }
-
     public string? Action { get; set; }
-
-    public virtual ICollection<Position> Positions { get; set; } = new List<Position>();
 }
