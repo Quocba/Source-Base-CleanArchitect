@@ -1,5 +1,5 @@
 using Application.IGenericRepository;
-using Domain.Entities.Enum;
+using Domain.Enums;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;

@@ -1,4 +1,4 @@
-﻿namespace Domain.Entities.Enum
+namespace Domain.Enums
 {
     public enum FolderPath
     {

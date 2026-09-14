@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Domain.Config;
 using MaxMind.GeoIP2;
 using Microsoft.Extensions.Options;
 using Serilog;

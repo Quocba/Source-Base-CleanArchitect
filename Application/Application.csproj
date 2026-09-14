@@ -8,9 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
-    <ProjectReference Include="..\EmailService\EmailService.csproj" />
     <ProjectReference Include="..\RabbitMQContract\RabbitMQContract.csproj" />
-    <ProjectReference Include="..\RedisService\RedisService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

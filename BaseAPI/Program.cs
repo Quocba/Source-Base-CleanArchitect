@@ -4,8 +4,6 @@ using BaseAPI.DI;
 using BaseAPI.Middleware;
 using BaseAPI.Middleware.JWTMidlleware;
 using BaseAPI.Middleware.SecurityLog;
-using Domain.Config;
-using Domain.KeyHandle;
 using Domain.Payload.Base;
 using Domain.Share.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

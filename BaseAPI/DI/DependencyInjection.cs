@@ -6,7 +6,8 @@ namespace BaseAPI.DI
     using Application.IUnitOfWork;
     using BaseAPI.Middleware.JWTMidlleware;
     using Domain;
-    using Domain.Config;
+    using Infrastructure.Config;
+    using BaseAPI.Middleware.SecurityLog;
     using Domain.Entities;
     using Domain.Payload.Base;
     using Domain.Share.Common;
@@ -14,7 +15,6 @@ namespace BaseAPI.DI
     using EmailService.Config;
     using EmailService.Implement;
     using EmailService.Interface;
-    using RabbitMQContract.Consumer.Product;
     using Infrastructure.Context;
     using Infrastructure.Elasticsearch;
     using Infrastructure.GenericRepository;
@@ -42,7 +42,7 @@ namespace BaseAPI.DI
     using System.Reflection;
     using System.Text;
     using System.Threading.RateLimiting;
-    using Domain.KeyHandle;
+    using Infrastructure.KeyHandle;
     using Microsoft.IdentityModel.Tokens;
     using Microsoft.OpenApi.Models;
     using Microsoft.AspNetCore.DataProtection;
@@ -78,7 +78,6 @@ namespace BaseAPI.DI
             #region Cache Configuration
 
             services.AddMemoryCache();
-            services.AddScoped(typeof(GenericCacheInvalidator<>));
 
             #endregion
 
@@ -149,7 +148,6 @@ namespace BaseAPI.DI
                     x.AddConsumer<EmailSendFileConsumer>();
                     x.AddConsumer<DbActionConsumer>();
                     x.AddConsumer<GenericQueueConsumer>();
-                    x.AddConsumer<ProductCreatedConsumer>();
                     x.UsingRabbitMq((context, cfg) =>
                     {
                         cfg.Host(rabbitSettings.HostName, rabbitSettings.VirtualHost, h =>
@@ -174,14 +172,6 @@ namespace BaseAPI.DI
                             e.PrefetchCount = 20;
                             e.ConcurrentMessageLimit = 10;
                         });
-
-                        cfg.ReceiveEndpoint("product-created-queue", e =>
-                        {
-                            e.ConfigureConsumer<ProductCreatedConsumer>(context);
-                            e.PrefetchCount = 20;
-                            e.ConcurrentMessageLimit = 10;
-                        });
-
                     });
                 });
 

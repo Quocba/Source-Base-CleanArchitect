@@ -1,7 +1,6 @@
-﻿using Domain.Share.Util;
 using Microsoft.Extensions.Configuration;
 
-namespace Domain.KeyHandle
+namespace Infrastructure.KeyHandle
 {
     public class ApiKeyValidator : IApiKeyValidator
     {

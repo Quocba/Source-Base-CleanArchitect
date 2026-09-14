@@ -1,20 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Domain.Share.Common
 {
     public static class StatusCode
     {
-        // 1xx: Informational
         public const int Continue = 100;
         public const int SwitchingProtocols = 101;
         public const int Processing = 102;
         public const int EarlyHints = 103;
 
-        // 2xx: Success
         public const int OK = 200;
         public const int Created = 201;
         public const int Accepted = 202;
@@ -23,7 +15,6 @@ namespace Domain.Share.Common
         public const int ResetContent = 205;
         public const int PartialContent = 206;
 
-        // 3xx: Redirection
         public const int MultipleChoices = 300;
         public const int MovedPermanently = 301;
         public const int Found = 302;
@@ -32,7 +23,6 @@ namespace Domain.Share.Common
         public const int TemporaryRedirect = 307;
         public const int PermanentRedirect = 308;
 
-        // 4xx: Client Error
         public const int BadRequest = 400;
         public const int Unauthorized = 401;
         public const int PaymentRequired = 402;
@@ -63,7 +53,6 @@ namespace Domain.Share.Common
         public const int RequestHeaderFieldsTooLarge = 431;
         public const int UnavailableForLegalReasons = 451;
 
-        // 5xx: Server Error
         public const int InternalServerError = 500;
         public const int NotImplemented = 501;
         public const int BadGateway = 502;

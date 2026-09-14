@@ -1,4 +1,4 @@
-namespace Domain.Share.Common
+namespace BaseAPI.Common
 {
     public static class EndpointManage
     {

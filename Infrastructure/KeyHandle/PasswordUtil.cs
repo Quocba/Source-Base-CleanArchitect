@@ -1,7 +1,8 @@
-﻿using System.Security.Cryptography;
+using System;
+using System.Security.Cryptography;
 using System.Text;
 
-namespace Domain.Share.Util
+namespace Infrastructure.KeyHandle
 {
     public static class PasswordUtil
     {
@@ -14,15 +15,15 @@ namespace Domain.Share.Util
 
         public static string ToMD5(string input)
         {
-            using (var md5 = MD5.Create())
+            using var md5 = MD5.Create();
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+            var hashBytes = md5.ComputeHash(inputBytes);
+            var sb = new StringBuilder();
+            foreach (var b in hashBytes)
             {
-                var inputBytes = Encoding.UTF8.GetBytes(input);
-                var hashBytes = md5.ComputeHash(inputBytes);
-                var sb = new StringBuilder();
-                foreach (var b in hashBytes)
-                    sb.Append(b.ToString("x2"));
-                return sb.ToString();
+                sb.Append(b.ToString("x2"));
             }
+            return sb.ToString();
         }
     }
 }

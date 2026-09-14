@@ -14,12 +14,6 @@ namespace Application.Features.Products.Commands.DeleteProduct
                                            ILogger<DeleteProductCommandHandle> _logger)
         : IRequestHandler<DeleteProductCommand, ApiResponse<bool>>
     {
-        /*
-            1. Tìm sản phẩm theo Id.
-            2. Nếu không tìm thấy hoặc đã bị xóa -> trả về 404 NotFound.
-            3. Thực hiện Soft Delete: Đánh dấu IsDeleted = true.
-            4. Lưu thay đổi và trả về kết quả thành công.
-        */
         public async Task<ApiResponse<bool>> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
         {
             try

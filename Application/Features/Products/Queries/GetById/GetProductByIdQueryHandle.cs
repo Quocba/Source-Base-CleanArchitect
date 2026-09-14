@@ -16,11 +16,6 @@ namespace Application.Features.Products.Queries.GetById
                                           ILogger<GetProductByIdQueryHandle> _logger)
         : IRequestHandler<GetProductByIdQuery, ApiResponse<ProductResponse>>
     {
-        /*
-            1. Tìm kiếm sản phẩm theo Id và include thông tin Category.
-            2. Nếu không tìm thấy hoặc IsDeleted = true -> trả về 404 NotFound.
-            3. Ánh xạ sang ProductResponse và trả về kết quả.
-        */
         public async Task<ApiResponse<ProductResponse>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
         {
             try

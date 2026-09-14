@@ -14,11 +14,6 @@ namespace Application.Features.Categories.Commands.CreateCategory
                                             ILogger<CreateCategoryCommandHandle> _logger)
         : IRequestHandler<CreateCategoryCommand, ApiResponse<string>>
     {
-        /*
-            1. Kiểm tra trùng mã danh mục.
-            2. Tạo entity Category mới.
-            3. Lưu vào Database và trả về kết quả.
-        */
         public async Task<ApiResponse<string>> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
         {
             try

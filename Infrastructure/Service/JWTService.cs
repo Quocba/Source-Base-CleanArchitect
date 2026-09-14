@@ -1,5 +1,5 @@
 using Application.IService;
-using Domain.Config;
+using Infrastructure.Config;
 using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;

@@ -1,8 +1,7 @@
-﻿namespace Domain.KeyHandle
+namespace Infrastructure.KeyHandle
 {
     public interface IApiKeyValidator
     {
         bool IsValid(string key);
-
     }
 }

@@ -14,13 +14,6 @@ namespace Application.Features.Products.Commands.EditProduct
                                          ILogger<EditProductCommandHandle> _logger)
         : IRequestHandler<EditProductCommand, ApiResponse<string>>
     {
-        /*
-            1. Tìm sản phẩm theo Id.
-            2. Nếu không tìm thấy hoặc đã bị xóa -> trả về 404 NotFound.
-            3. Nếu có CategoryId mới, kiểm tra tính hợp lệ của danh mục.
-            4. Cập nhật các trường thông tin.
-            5. Lưu thay đổi và trả về kết quả thành công.
-        */
         public async Task<ApiResponse<string>> Handle(EditProductCommand request, CancellationToken cancellationToken)
         {
             try

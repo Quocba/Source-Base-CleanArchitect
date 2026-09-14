@@ -1,10 +1,5 @@
-﻿using System;
-
-namespace Domain.Entities.Enum
+namespace Domain.Enums
 {
-    /// <summary>
-    /// Enum ánh xạ tên entity cho delete chung. FE truyền đúng tên dưới dạng string (case-insensitive).
-    /// </summary>
     public enum EntityEnum
     {
         Unknown = 0,

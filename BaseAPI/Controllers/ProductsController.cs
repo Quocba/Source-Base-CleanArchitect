@@ -3,7 +3,7 @@ using Application.Features.Products.Commands.DeleteProduct;
 using Application.Features.Products.Commands.EditProduct;
 using Application.Features.Products.Queries.GetById;
 using Application.Features.Products.Queries.Gets;
-using Domain.Share.Common;
+using BaseAPI.Common;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System;

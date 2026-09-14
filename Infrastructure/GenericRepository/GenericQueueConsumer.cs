@@ -1,4 +1,4 @@
-using Domain.Entities.Enum;
+using Domain.Enums;
 using Infrastructure.Context;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
