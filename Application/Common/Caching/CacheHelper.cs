@@ -25,5 +25,11 @@ namespace Application.Common.Caching
             
             return $"{prefix}req:{hash}";
         }
+
+        public static string GenerateKeyWithParam(string prefix, string paramName, object? paramValue)
+        {
+            var valueStr = paramValue?.ToString() ?? "null";
+            return $"{prefix}:{paramName}:{valueStr}";
+        }
     }
 }

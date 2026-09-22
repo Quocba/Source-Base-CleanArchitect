@@ -1,5 +1,5 @@
 using Domain.Payload.Base;
-using Domain.Share.Common;
+using Application.Common.Share.Common;
 using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;

@@ -1,5 +1,5 @@
-﻿using Application.Common.ElasticSearch;
-using Application.IGenericRepository;
+using Application.Common.ElasticSearch;
+using Application.Interfaces;
 using Elastic.Clients.Elasticsearch;
 
 namespace Infrastructure.Elasticsearch

@@ -1,8 +1,7 @@
-﻿using Application.IGenericRepository;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.IUnitOfWork;
+namespace Application.Interfaces;
 
 public interface IUnitOfWork
 {

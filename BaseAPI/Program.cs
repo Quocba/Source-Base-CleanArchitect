@@ -1,11 +1,11 @@
-using API.Middleware.GlobalLogger;
+﻿using API.Middleware.GlobalLogger;
 using API.Middleware.JWTMidlleware;
 using BaseAPI.DI;
 using BaseAPI.Middleware;
 using BaseAPI.Middleware.JWTMidlleware;
 using BaseAPI.Middleware.SecurityLog;
 using Domain.Payload.Base;
-using Domain.Share.Common;
+using Application.Common.Share.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
@@ -26,12 +26,12 @@ var app = builder.Build();
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
-    options.Title = "Base Clean Architecture API";
+    options.Title = "SourceBase API";
     options.Theme = ScalarTheme.Saturn;
     options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
 
-// Middleware tính toán thời gian thực thi (Timing) của API
+// Middleware tÃ­nh toÃ¡n thá»i gian thá»±c thi (Timing) cá»§a API
 app.UseMiddleware<ResponseTimingMiddleware>();
 
 app.UseCors("Allow");

@@ -1,8 +1,8 @@
-﻿using Application.OCRHelper;
+using Application.OCRHelper;
 using Application.Payload.Request.OCR;
 using Application.Payload.Response.OCR;
 using Domain.Payload.Base; // Nơi chứa ApiResponse
-using Domain.Share.Common; // Nơi chứa StatusCode enum
+using Application.Common.Share.Common;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 

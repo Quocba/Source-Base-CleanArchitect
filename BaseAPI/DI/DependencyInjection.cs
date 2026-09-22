@@ -1,16 +1,16 @@
-namespace BaseAPI.DI
+﻿namespace BaseAPI.DI
 {
+    using Application.Common.Caching;
     using Application.Common.ElasticSearch;
-    using Application.IGenericRepository;
+    using Application.Interfaces;
     using Application.IService;
-    using Application.IUnitOfWork;
     using BaseAPI.Middleware.JWTMidlleware;
     using Domain;
     using Infrastructure.Config;
     using BaseAPI.Middleware.SecurityLog;
     using Domain.Entities;
     using Domain.Payload.Base;
-    using Domain.Share.Common;
+    using Application.Common.Share.Common;
     using Elastic.Clients.Elasticsearch;
     using EmailService.Config;
     using EmailService.Implement;
@@ -78,6 +78,7 @@ namespace BaseAPI.DI
             #region Cache Configuration
 
             services.AddMemoryCache();
+            services.AddScoped(typeof(GenericCacheInvalidator<>));
 
             #endregion
 
@@ -110,7 +111,7 @@ namespace BaseAPI.DI
                 .WriteTo.Logger(lc => lc
                     .Filter.ByIncludingOnly(le =>
                         le.Level == LogEventLevel.Information &&
-                        le.MessageTemplate.Text.Contains("🧑‍💻"))
+                        le.MessageTemplate.Text.Contains("ðŸ§‘â€ðŸ’»"))
                     .WriteTo.Discord(
                         webhookId: ulong.Parse(hookId),
                         webhookToken: hookToken
@@ -254,7 +255,7 @@ namespace BaseAPI.DI
                         var response = new ApiResponse<object>
                         {
                             StatusCode = StatusCodes.Status400BadRequest,
-                            Message = firstError ?? "Dữ liệu không hợp lệ",
+                            Message = firstError ?? "Dá»¯ liá»‡u khÃ´ng há»£p lá»‡",
                             Data = null
                         };
 
@@ -271,7 +272,7 @@ namespace BaseAPI.DI
             services.AddEndpointsApiExplorer();
             services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys"))
-                    .SetApplicationName("NgocDaiAPI");
+                    .SetApplicationName("SourceBase");
             #endregion
 
             #region JWT & AUTH
@@ -308,7 +309,7 @@ namespace BaseAPI.DI
                         context.NoResult();
                         context.Response.StatusCode = 401;
                         context.Response.ContentType = "application/json";
-                        return context.Response.WriteAsync("{\"error\":\"Token không hợp lệ hoặc đã hết hạn.\"}");
+                        return context.Response.WriteAsync("{\"error\":\"Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.\"}");
                     },
                     OnChallenge = context =>
                     {
@@ -318,7 +319,7 @@ namespace BaseAPI.DI
                         return context.Response.WriteAsync(JsonConvert.SerializeObject(new ApiResponse<string>
                         {
                             StatusCode = StatusCode.Unauthorized,
-                            Message = "Bạn chưa đăng nhập hoặc token không hợp lệ.",
+                            Message = "Báº¡n chÆ°a Ä‘Äƒng nháº­p hoáº·c token khÃ´ng há»£p lá»‡.",
                             Data = null
                         }));
                     },
@@ -329,7 +330,7 @@ namespace BaseAPI.DI
                         var response = new ApiResponse<string>
                         {
                             StatusCode = StatusCode.Forbidden,
-                            Message = "Bạn không có quyền truy cập vào tài nguyên này.",
+                            Message = "Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p vÃ o tÃ i nguyÃªn nÃ y.",
                             Data = null
                         };
                         return context.Response.WriteAsync(JsonConvert.SerializeObject(response));
@@ -352,9 +353,9 @@ namespace BaseAPI.DI
                 {
                     document.Info = new OpenApiInfo
                     {
-                        Title = "BaseAPI Clean Architecture",
+                        Title = "SourceBase API",
                         Version = "v1",
-                        Description = "API theo chuẩn Clean Architecture với Stored Procedure phân trang nâng cao và Scalar UI"
+                        Description = "SourceBase API theo chuáº©n Clean Architecture vá»›i Stored Procedure phÃ¢n trang nÃ¢ng cao vÃ  Scalar UI"
                     };
 
                     document.Components ??= new OpenApiComponents();
@@ -365,7 +366,7 @@ namespace BaseAPI.DI
                         BearerFormat = "JWT",
                         In = ParameterLocation.Header,
                         Name = "Authorization",
-                        Description = "Nhập 'Bearer {JWT_TOKEN}'"
+                        Description = "Nháº­p 'Bearer {JWT_TOKEN}'"
                     };
 
                     document.SecurityRequirements.Add(new OpenApiSecurityRequirement
@@ -382,45 +383,6 @@ namespace BaseAPI.DI
                             new List<string>()
                         }
                     });
-
-                    return Task.CompletedTask;
-                });
-
-                // Cung cấp Request Body Mẫu mặc định cho các Command (Tương tự Request Body mẫu trên Postman)
-                options.AddSchemaTransformer((schema, context, cancellationToken) =>
-                {
-                    if (context.JsonTypeInfo.Type == typeof(Application.Features.Products.Commands.CreateProduct.CreateProductCommand))
-                    {
-                        schema.Example = new Microsoft.OpenApi.Any.OpenApiObject
-                        {
-                            ["code"] = new Microsoft.OpenApi.Any.OpenApiString("PROD-DEMO-01"),
-                            ["name"] = new Microsoft.OpenApi.Any.OpenApiString("Bàn phím cơ Bluetooth RGB Pro"),
-                            ["description"] = new Microsoft.OpenApi.Any.OpenApiString("Bàn phím không dây 3 chế độ kết nối, switch cơ học gõ êm"),
-                            ["price"] = new Microsoft.OpenApi.Any.OpenApiDouble(1250000.0),
-                            ["stockQuantity"] = new Microsoft.OpenApi.Any.OpenApiInteger(100),
-                            ["status"] = new Microsoft.OpenApi.Any.OpenApiInteger(1)
-                        };
-                    }
-                    else if (context.JsonTypeInfo.Type == typeof(Application.Features.Products.Commands.EditProduct.EditProductCommand))
-                    {
-                        schema.Example = new Microsoft.OpenApi.Any.OpenApiObject
-                        {
-                            ["name"] = new Microsoft.OpenApi.Any.OpenApiString("Bàn phím cơ Bluetooth RGB Pro - Bản nâng cấp"),
-                            ["description"] = new Microsoft.OpenApi.Any.OpenApiString("Đã cập nhật pin 4000mAh và keycap PBT cao cấp"),
-                            ["price"] = new Microsoft.OpenApi.Any.OpenApiDouble(1390000.0),
-                            ["stockQuantity"] = new Microsoft.OpenApi.Any.OpenApiInteger(150),
-                            ["status"] = new Microsoft.OpenApi.Any.OpenApiInteger(1)
-                        };
-                    }
-                    else if (context.JsonTypeInfo.Type == typeof(Application.Features.Categories.Commands.CreateCategory.CreateCategoryCommand))
-                    {
-                        schema.Example = new Microsoft.OpenApi.Any.OpenApiObject
-                        {
-                            ["code"] = new Microsoft.OpenApi.Any.OpenApiString("CAT-PHUKIEN"),
-                            ["name"] = new Microsoft.OpenApi.Any.OpenApiString("Phụ kiện Máy tính & Gaming"),
-                            ["description"] = new Microsoft.OpenApi.Any.OpenApiString("Chuột, bàn phím, lót chuột, tai nghe gaming")
-                        };
-                    }
 
                     return Task.CompletedTask;
                 });

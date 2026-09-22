@@ -1,9 +1,9 @@
 using Infrastructure.KeyHandle;
 using Domain.Payload.Base;
-using Domain.Share.Common;
+using Application.Common.Share.Common;
 using Newtonsoft.Json;
 
-namespace Ecomer_DCS.Middleware
+namespace BaseAPI.Middleware
 {
     public class ApiKeyMiddleware
     {

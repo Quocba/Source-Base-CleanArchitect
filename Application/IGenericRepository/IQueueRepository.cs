@@ -2,7 +2,7 @@ using Domain.Enums;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Application.IGenericRepository
+namespace Application.Interfaces
 {
     public interface IQueueRepository
     {

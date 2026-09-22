@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.IGenericRepository
+namespace Application.Interfaces
 {
     public interface IElasticRepository<T> where T : class
     {

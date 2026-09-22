@@ -1,6 +1,6 @@
-﻿using Application.Payload.Response.OCR; // Giả định OcrResult đang nằm ở đây
+using Application.Payload.Response.OCR; // Giả định OcrResult đang nằm ở đây
 using Domain.Payload.Base;
-using Domain.Share.Common;
+using Application.Common.Share.Common;
 using System;
 using System.IO;
 using System.Threading.Tasks;

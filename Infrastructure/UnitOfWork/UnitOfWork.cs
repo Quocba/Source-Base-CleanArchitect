@@ -1,5 +1,4 @@
-﻿using Application.IGenericRepository;
-using Application.IUnitOfWork;
+using Application.Interfaces;
 using Infrastructure.GenericRepository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;

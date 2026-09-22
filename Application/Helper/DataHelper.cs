@@ -1,3 +1,4 @@
+using Application.Interfaces;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Application.Helper
 {
-    public class DataHelper(IUnitOfWork.IUnitOfWork _unitOfWork, ILogger<DataHelper> _logger)
+    public class DataHelper(IUnitOfWork _unitOfWork, ILogger<DataHelper> _logger)
     {
         public async Task<IEnumerable<dynamic>> ExecuteProcedureAsync(string procedure, object parameters, CancellationToken cancellationToken = default)
         {

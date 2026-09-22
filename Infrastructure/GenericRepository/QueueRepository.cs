@@ -1,4 +1,4 @@
-using Application.IGenericRepository;
+using Application.Interfaces;
 using Domain.Enums;
 using MassTransit;
 using Microsoft.Extensions.Logging;

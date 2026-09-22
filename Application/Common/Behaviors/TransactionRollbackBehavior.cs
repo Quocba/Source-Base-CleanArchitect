@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Application.IUnitOfWork;
+using Application.Interfaces;
 
 namespace Application.Common.Behaviors
 {

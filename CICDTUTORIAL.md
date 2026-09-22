@@ -221,7 +221,7 @@ Tạo **A record**:
 
 Ví dụ:
 ```
-api.ngocdai.com → 103.xxx.xxx.xxx
+api.yourdomain.com → 103.xxx.xxx.xxx
 ```
 
 ---
@@ -235,7 +235,7 @@ api.ngocdai.com → 103.xxx.xxx.xxx
 ```nginx
 server {
     listen 80;
-    server_name api.ngocdai.com;
+    server_name api.yourdomain.com;
 
     location / {
         proxy_pass http://host.docker.internal:8081;
