@@ -12,6 +12,7 @@ namespace Application.IService
     public interface IJWTService
     {
         string GenerateToken(User user);
+        string GenerateToken(Guid userId, string userName, string? roleName);
         string GenerateFingerprint(HttpContext context);
         string? GetUserId(ClaimsPrincipal user);
         string? GetUser();

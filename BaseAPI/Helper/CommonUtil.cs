@@ -16,8 +16,8 @@ namespace BaseAPI.Helper
     {
         private static string GetBaseUploadPath()
         {
-            var sharedRoot = @"C:\inetpub\wwwroot\SourceBase\Sharing";
-            var projectSharedPath = Path.Combine(sharedRoot, "SourceBase");
+            var sharedRoot = @"C:\inetpub\wwwroot\CleanArchitectureBase\Sharing";
+            var projectSharedPath = Path.Combine(sharedRoot, "CleanArchitectureBase");
             if (Directory.Exists(sharedRoot))
             {
                 if (!Directory.Exists(projectSharedPath))

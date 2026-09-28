@@ -34,13 +34,27 @@ namespace Application.Common.Caching
         public SingleParameter(string key, object? value)
         {
             Key = key;
-            Value = value;
+            if (value is string str)
+            {
+                Value = string.IsNullOrWhiteSpace(str) ? null : str.Trim();
+            }
+            else
+            {
+                Value = value;
+            }
         }
 
         public SingleParameter(object? value)
         {
             Key = "Param";
-            Value = value;
+            if (value is string str)
+            {
+                Value = string.IsNullOrWhiteSpace(str) ? null : str.Trim();
+            }
+            else
+            {
+                Value = value;
+            }
         }
     }
 
@@ -77,10 +91,7 @@ namespace Application.Common.Caching
         {
             PageNumber = 0;
             PageSize = 0;
-            if (value != null)
-            {
-                Filters[key] = value;
-            }
+            AddFilter(key, value);
         }
 
         /// <summary>
@@ -88,10 +99,7 @@ namespace Application.Common.Caching
         /// </summary>
         public ListParameters<TEntity> AddParameter(string key, object? value)
         {
-            if (value != null)
-            {
-                Filters[key] = value;
-            }
+            AddFilter(key, value);
             return this;
         }
 
@@ -99,6 +107,15 @@ namespace Application.Common.Caching
         {
             if (value != null)
             {
+                if (value is string str)
+                {
+                    if (string.IsNullOrWhiteSpace(str))
+                    {
+                        return;
+                    }
+                    Filters[key] = str.Trim();
+                    return;
+                }
                 Filters[key] = value;
             }
         }

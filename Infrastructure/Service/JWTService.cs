@@ -12,16 +12,26 @@ public class JWTService :  IJWTService
 {
     private readonly JwtSettings _jwtSettings;
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly SigningCredentials _signingCredentials;
+    private readonly JwtSecurityTokenHandler _tokenHandler;
 
     public JWTService(JwtSettings settings, IHttpContextAccessor? httpContextAccessor)
     {
         _jwtSettings = settings;
         _httpContextAccessor = httpContextAccessor;
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+        _signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        _tokenHandler = new JwtSecurityTokenHandler();
     }
 
     public string GenerateToken(User user)
     {
-        var httpContext = _httpContextAccessor.HttpContext;
+        return GenerateToken(user.Id, user.UserName ?? string.Empty, user.Role?.Name);
+    }
+
+    public string GenerateToken(Guid userId, string userName, string? roleName)
+    {
+        var httpContext = _httpContextAccessor?.HttpContext;
 
         string ip = "Unknown";
         string fingerprint = "Unknown";
@@ -40,30 +50,25 @@ public class JWTService :  IJWTService
 
             fingerprint = GenerateFingerprint(httpContext);
         }
-        var userId = user.Id.ToString();
-        var roleName = user.Role?.Name ?? "User";
 
-        var claims = new List<Claim>
+        var claims = new List<Claim>(5)
         {
-            new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
-            new Claim(ClaimTypes.Role, roleName),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Name, userName),
+            new Claim(ClaimTypes.Role, roleName ?? "User"),
             new Claim("ip", ip),
             new Claim("fp", fingerprint)
         };
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpireMinutes),
-            signingCredentials: creds
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: _signingCredentials
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return _tokenHandler.WriteToken(token);
     }
 
     public string GenerateFingerprint(HttpContext context)
@@ -73,10 +78,13 @@ public class JWTService :  IJWTService
         var platform = context.Request.Headers["Sec-CH-UA-Platform"].ToString();
 
         var raw = $"{ua}|{lang}|{platform}";
-        using var sha = SHA256.Create();
-        var bytes = Encoding.UTF8.GetBytes(raw);
+        Span<byte> hashBytes = stackalloc byte[32];
+        int byteCount = Encoding.UTF8.GetByteCount(raw);
+        Span<byte> utf8Bytes = byteCount <= 512 ? stackalloc byte[byteCount] : new byte[byteCount];
+        Encoding.UTF8.GetBytes(raw, utf8Bytes);
+        SHA256.HashData(utf8Bytes, hashBytes);
 
-        return Convert.ToBase64String(sha.ComputeHash(bytes));
+        return Convert.ToBase64String(hashBytes);
     }
 
     private string NormalizePermissionKey(string module)
@@ -133,17 +141,14 @@ public class JWTService :  IJWTService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpireMinutes),
-            signingCredentials: creds
+            signingCredentials: _signingCredentials
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return _tokenHandler.WriteToken(token);
     }
 }

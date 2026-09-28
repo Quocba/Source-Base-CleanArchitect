@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+using Domain.Payload.Base;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
@@ -58,11 +59,11 @@ namespace API.Middleware.GlobalLogger
 
                 context.Response.StatusCode = 500;
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsJsonAsync(new
+                await context.Response.WriteAsJsonAsync(new ApiResponse<object>
                 {
                     StatusCode = 500,
-                    Message = ex.Message,
-                    Detail = _showStackTrace ? ex.StackTrace : null
+                    Message = "Có lỗi xảy ra từ hệ thống. Vui lòng liên hệ quản trị viên.",
+                    Data = null
                 });
             }
         }

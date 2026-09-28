@@ -26,17 +26,17 @@ var app = builder.Build();
 app.MapOpenApi();
 app.MapScalarApiReference(options =>
 {
-    options.Title = "SourceBase API";
+    options.Title = "Clean Architecture API";
     options.Theme = ScalarTheme.Saturn;
     options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
 
-// Middleware tÃ­nh toÃ¡n thá»i gian thá»±c thi (Timing) cá»§a API
+// Middleware tính toán thời gian thực thi (Timing) của API
 app.UseMiddleware<ResponseTimingMiddleware>();
 
 app.UseCors("Allow");
 app.UseMiddleware<SecurityMiddleware>();
-//app.UseMiddleware<ExceptionLoggingMiddleware>();
+app.UseMiddleware<ExceptionLoggingMiddleware>();
 app.UseStaticFiles();
 app.UseSharedStaticFiles(builder.Configuration);
 

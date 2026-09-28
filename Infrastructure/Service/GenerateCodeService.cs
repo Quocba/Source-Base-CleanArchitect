@@ -1,4 +1,4 @@
-﻿using Application.IService;
+using Application.IService;
 using Application.Interfaces;
 using System;
 using System.Globalization;
@@ -12,7 +12,7 @@ namespace Infrastructure.Service
     public class GenerateCodeService : IGenerateCodeService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private const string CompanyCode = "BASE";
+        private const string CompanyCode = "DCS";
 
         public GenerateCodeService(IUnitOfWork unitOfWork)
         {
@@ -26,7 +26,7 @@ namespace Infrastructure.Service
 
             var normalized = RemoveVietnameseAccent(departmentName).ToUpper();
 
-            var ignoredWords = new[] { "PHONG", "PHÃ’NG", "BAN", "DEPARTMENT" };
+            var ignoredWords = new[] { "PHONG", "PHÒNG", "BAN", "DEPARTMENT" };
 
             var words = normalized
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
@@ -34,7 +34,7 @@ namespace Infrastructure.Service
                 .ToList();
 
             if (!words.Any())
-                throw new Exception("TÃªn phÃ²ng ban khÃ´ng há»£p lá»‡");
+                throw new Exception("Tên phòng ban không hợp lệ");
 
             var deptCode = string.Concat(words.Select(w => w[0]));
 

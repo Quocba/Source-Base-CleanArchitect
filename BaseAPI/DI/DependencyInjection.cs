@@ -61,7 +61,6 @@
             services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssembly(typeof(IUnitOfWork).Assembly);
-                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(Application.Common.Behaviors.TransactionRollbackBehavior<,>));
             });
             #endregion
 
@@ -72,7 +71,7 @@
 
             #region Repository Configuration
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-            services.AddScoped<IQueueRepository, QueueRepository>();
+            // services.AddScoped<IQueueRepository, QueueRepository>();
             #endregion
 
             #region Cache Configuration
@@ -111,7 +110,7 @@
                 .WriteTo.Logger(lc => lc
                     .Filter.ByIncludingOnly(le =>
                         le.Level == LogEventLevel.Information &&
-                        le.MessageTemplate.Text.Contains("ðŸ§‘â€ðŸ’»"))
+                        le.MessageTemplate.Text.Contains("🧑‍💻"))
                     .WriteTo.Discord(
                         webhookId: ulong.Parse(hookId),
                         webhookToken: hookToken
@@ -129,7 +128,7 @@
                 opt.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             });
 
-            services.AddDbContext<QueueDbContext>();
+            // services.AddDbContext<QueueDbContext>();
 
             #endregion
 
@@ -140,41 +139,41 @@
             #endregion
 
             #region RabbitMQ
-            services.Configure<RabbitMQConfig>(configuration.GetSection("RabbitMQ"));
-            var rabbitSettings = configuration.GetSection("RabbitMQ").Get<RabbitMQConfig>();
+            //services.Configure<RabbitMQConfig>(configuration.GetSection("RabbitMQ"));
+            //var rabbitSettings = configuration.GetSection("RabbitMQ").Get<RabbitMQConfig>();
 
-                services.AddMassTransit(x =>
-                {
-                    x.AddConsumer<EmailConsumer>();
-                    x.AddConsumer<EmailSendFileConsumer>();
-                    x.AddConsumer<DbActionConsumer>();
-                    x.AddConsumer<GenericQueueConsumer>();
-                    x.UsingRabbitMq((context, cfg) =>
-                    {
-                        cfg.Host(rabbitSettings.HostName, rabbitSettings.VirtualHost, h =>
-                        {
-                            h.Username(rabbitSettings.UserName);
-                            h.Password(rabbitSettings.Password);
-                        });
+            //    services.AddMassTransit(x =>
+            //    {
+            //        x.AddConsumer<EmailConsumer>();
+            //        x.AddConsumer<EmailSendFileConsumer>();
+            //        x.AddConsumer<DbActionConsumer>();
+            //        x.AddConsumer<GenericQueueConsumer>();
+            //        x.UsingRabbitMq((context, cfg) =>
+            //        {
+            //            cfg.Host(rabbitSettings.HostName, rabbitSettings.VirtualHost, h =>
+            //            {
+            //                h.Username(rabbitSettings.UserName);
+            //                h.Password(rabbitSettings.Password);
+            //            });
 
-                        cfg.ReceiveEndpoint("email-queue", e =>
-                        {
-                            e.ConfigureConsumer<EmailConsumer>(context);
-                        });
+            //            cfg.ReceiveEndpoint("email-queue", e =>
+            //            {
+            //                e.ConfigureConsumer<EmailConsumer>(context);
+            //            });
 
-                        cfg.ReceiveEndpoint("email-send-file", e =>
-                        {
-                            e.ConfigureConsumer<EmailSendFileConsumer>(context);
-                        });
+            //            cfg.ReceiveEndpoint("email-send-file", e =>
+            //            {
+            //                e.ConfigureConsumer<EmailSendFileConsumer>(context);
+            //            });
 
-                        cfg.ReceiveEndpoint("generic-queue", e =>
-                        {
-                            e.ConfigureConsumer<GenericQueueConsumer>(context);
-                            e.PrefetchCount = 20;
-                            e.ConcurrentMessageLimit = 10;
-                        });
-                    });
-                });
+            //            cfg.ReceiveEndpoint("generic-queue", e =>
+            //            {
+            //                e.ConfigureConsumer<GenericQueueConsumer>(context);
+            //                e.PrefetchCount = 20;
+            //                e.ConcurrentMessageLimit = 10;
+            //            });
+            //        });
+            //    });
 
 
             #endregion
@@ -255,7 +254,7 @@
                         var response = new ApiResponse<object>
                         {
                             StatusCode = StatusCodes.Status400BadRequest,
-                            Message = firstError ?? "Dá»¯ liá»‡u khÃ´ng há»£p lá»‡",
+                            Message = firstError ?? "Dữ liệu không hợp lệ",
                             Data = null
                         };
 
@@ -272,7 +271,7 @@
             services.AddEndpointsApiExplorer();
             services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo(@"C:\keys"))
-                    .SetApplicationName("SourceBase");
+                    .SetApplicationName("CleanArchitectureBase");
             #endregion
 
             #region JWT & AUTH
@@ -309,7 +308,7 @@
                         context.NoResult();
                         context.Response.StatusCode = 401;
                         context.Response.ContentType = "application/json";
-                        return context.Response.WriteAsync("{\"error\":\"Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n.\"}");
+                        return context.Response.WriteAsync("{\"error\":\"Token không hợp lệ hoặc đã hết hạn.\"}");
                     },
                     OnChallenge = context =>
                     {
@@ -319,7 +318,7 @@
                         return context.Response.WriteAsync(JsonConvert.SerializeObject(new ApiResponse<string>
                         {
                             StatusCode = StatusCode.Unauthorized,
-                            Message = "Báº¡n chÆ°a Ä‘Äƒng nháº­p hoáº·c token khÃ´ng há»£p lá»‡.",
+                            Message = "Bạn chưa đăng nhập hoặc token không hợp lệ.",
                             Data = null
                         }));
                     },
@@ -330,7 +329,7 @@
                         var response = new ApiResponse<string>
                         {
                             StatusCode = StatusCode.Forbidden,
-                            Message = "Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p vÃ o tÃ i nguyÃªn nÃ y.",
+                            Message = "Bạn không có quyền truy cập vào tài nguyên này.",
                             Data = null
                         };
                         return context.Response.WriteAsync(JsonConvert.SerializeObject(response));
@@ -353,9 +352,9 @@
                 {
                     document.Info = new OpenApiInfo
                     {
-                        Title = "SourceBase API",
+                        Title = "Clean Architecture API",
                         Version = "v1",
-                        Description = "SourceBase API theo chuáº©n Clean Architecture vá»›i Stored Procedure phÃ¢n trang nÃ¢ng cao vÃ  Scalar UI"
+                        Description = "Clean Architecture API theo chuẩn Clean Architecture với Stored Procedure phân trang nâng cao và Scalar UI"
                     };
 
                     document.Components ??= new OpenApiComponents();
@@ -366,7 +365,7 @@
                         BearerFormat = "JWT",
                         In = ParameterLocation.Header,
                         Name = "Authorization",
-                        Description = "Nháº­p 'Bearer {JWT_TOKEN}'"
+                        Description = "Nhập 'Bearer {JWT_TOKEN}'"
                     };
 
                     document.SecurityRequirements.Add(new OpenApiSecurityRequirement
@@ -401,7 +400,6 @@
                 });
             });
             #endregion
-
 
             #region Helper
             services.AddScoped<IOCRHelper, TesseractOcrHelper>();

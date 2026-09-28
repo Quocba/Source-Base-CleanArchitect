@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 
 namespace Application.Features.Emails.Commands.SendEmailQueue
 {
+/*
+    // Tạm thời comment do chưa dùng RabbitMQ / MassTransit
     public class SendEmailQueueCommandHandle(IPublishEndpoint _publishEndpoint,
                                              ILogger<SendEmailQueueCommandHandle> _logger)
         : IRequestHandler<SendEmailQueueCommand, ApiResponse<string>>
@@ -48,4 +50,5 @@ namespace Application.Features.Emails.Commands.SendEmailQueue
             }
         }
     }
+*/
 }

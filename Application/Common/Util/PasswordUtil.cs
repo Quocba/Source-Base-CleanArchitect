@@ -10,9 +10,12 @@ namespace Application.Common.Util
         {
             if (string.IsNullOrEmpty(rawPassword)) return string.Empty;
 
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawPassword));
-            return Convert.ToBase64String(bytes);
+            Span<byte> hashBytes = stackalloc byte[32];
+            int byteCount = Encoding.UTF8.GetByteCount(rawPassword);
+            Span<byte> utf8Bytes = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
+            Encoding.UTF8.GetBytes(rawPassword, utf8Bytes);
+            SHA256.HashData(utf8Bytes, hashBytes);
+            return Convert.ToBase64String(hashBytes);
         }
 
         public static string ToMD5(string input)

@@ -8,34 +8,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class newDatabase : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "License",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LicenseKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    SystemType = table.Column<int>(type: "int", nullable: false),
-                    CustomerName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    MaxDevice = table.Column<int>(type: "int", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_License", x => x.Id);
-                });
-
             migrationBuilder.CreateTable(
                 name: "Permissions",
                 columns: table => new
@@ -61,32 +38,6 @@ namespace Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Role", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "LicenseDevices",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DeviceId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DeviceName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DeviceType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LicenseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LicenseDevices", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_LicenseDevices_License_LicenseId",
-                        column: x => x.LicenseId,
-                        principalTable: "License",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -122,10 +73,10 @@ namespace Infrastructure.Migrations
                     { new Guid("22222222-2222-2222-2222-222222222222"), "Manager" }
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LicenseDevices_LicenseId",
-                table: "LicenseDevices",
-                column: "LicenseId");
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "Id", "CreatedDate", "IsDeleted", "IsLock", "IsUseSoftWare", "LastModifiedDate", "Password", "RoleId", "UserName" },
+                values: new object[] { new Guid("e0000000-0000-0000-0000-000000000001"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), false, false, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "jZae727K08KaOmKSgOaGzww/XVqGr/hbm95QNENlC8g=", new Guid("11111111-1111-1111-1111-111111111111"), "DCSE" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_RoleId",
@@ -137,16 +88,10 @@ namespace Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "LicenseDevices");
-
-            migrationBuilder.DropTable(
                 name: "Permissions");
 
             migrationBuilder.DropTable(
                 name: "Users");
-
-            migrationBuilder.DropTable(
-                name: "License");
 
             migrationBuilder.DropTable(
                 name: "Role");

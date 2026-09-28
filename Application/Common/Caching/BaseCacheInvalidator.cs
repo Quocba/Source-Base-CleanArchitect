@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,13 +11,18 @@ namespace Application.Common.Caching
     {
         private readonly IMemoryCache _cache;
         protected readonly TimeSpan _defaultExpiration;
-        private readonly string _listCacheKeysSetKey;
+
+        // Lớp 2: Quản lý CancellationTokenSource tĩnh theo Entity để hủy hàng loạt bằng CancellationChangeToken
+        private static readonly ConcurrentDictionary<string, CancellationTokenSource> _entityCts = new();
+        private static readonly object _ctsLock = new();
+
+        // Lớp 3: Tracking tĩnh trong RAM bằng ConcurrentDictionary để không bị timeout ngầm và thread-safe tuyệt đối
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _trackedKeysPerEntity = new();
 
         protected BaseCacheInvalidator(IMemoryCache cache, TimeSpan? defaultExpiration = null)
         {
             _cache = cache;
             _defaultExpiration = defaultExpiration ?? TimeSpan.FromMinutes(30);
-            _listCacheKeysSetKey = $"{typeof(TEntity).Name}_ListCacheKeys";
         }
 
         protected abstract string GetEntityCacheKey(Guid entityId);
@@ -35,17 +42,155 @@ namespace Application.Common.Caching
             _cache.Remove(GetEntityCacheKey(key));
         }
 
+        /// <summary>
+        /// Xóa triệt để danh sách cache của Entity theo kiến trúc 3 lớp:
+        /// - Lớp 1: Quét MemoryCache.Keys (.NET 9) xóa mọi key có tiền tố Entity_
+        /// - Lớp 2: Hủy CancellationTokenSource (CancellationChangeToken) để MemoryCache tự động thu hồi
+        /// - Lớp 3: Duyệt ConcurrentDictionary tĩnh xóa toàn bộ tracked keys
+        /// </summary>
         public void InvalidateEntityList()
         {
-            if (_cache.TryGetValue(_listCacheKeysSetKey, out HashSet<string>? cacheKeys) && cacheKeys != null)
+            // Lớp 1: Quét MemoryCache.Keys (.NET 9)
+            PurgeKeysByPrefix();
+
+            // Lớp 2: Kích hoạt hủy token
+            CancelListChangeToken();
+
+            // Lớp 3: Quét tracked keys tĩnh
+            PurgeTrackedKeys();
+        }
+
+        #region Layer 1: MemoryCache.Keys Prefix Purge (.NET 9)
+
+        private void PurgeKeysByPrefix()
+        {
+            try
             {
-                foreach (var key in cacheKeys)
+                if (_cache is MemoryCache memoryCache)
+                {
+                    var prefix = $"{typeof(TEntity).Name}_";
+                    var exactName = typeof(TEntity).Name;
+
+                    var keysToRemove = memoryCache.Keys
+                        .OfType<string>()
+                        .Where(k => k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(k, exactName, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    foreach (var key in keysToRemove)
+                    {
+                        _cache.Remove(key);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Fallback an toàn nếu thao tác duyệt keys gặp xung đột đồng thời
+            }
+        }
+
+        #endregion
+
+        #region Layer 2: CancellationChangeToken Pattern
+
+        public IChangeToken GetListChangeToken()
+        {
+            var entityName = typeof(TEntity).Name;
+            lock (_ctsLock)
+            {
+                var cts = _entityCts.GetOrAdd(entityName, _ => new CancellationTokenSource());
+                return new CancellationChangeToken(cts.Token);
+            }
+        }
+
+        private void CancelListChangeToken()
+        {
+            var entityName = typeof(TEntity).Name;
+            CancellationTokenSource? oldCts = null;
+
+            lock (_ctsLock)
+            {
+                if (_entityCts.TryGetValue(entityName, out oldCts))
+                {
+                    _entityCts[entityName] = new CancellationTokenSource();
+                }
+            }
+
+            if (oldCts != null)
+            {
+                try
+                {
+                    if (!oldCts.IsCancellationRequested)
+                    {
+                        oldCts.Cancel();
+                    }
+                }
+                catch (ObjectDisposedException) { }
+                finally
+                {
+                    oldCts.Dispose();
+                }
+            }
+        }
+
+        #endregion
+
+        #region Layer 3: Static ConcurrentDictionary Key Tracking
+
+        public void AddToListCacheKeys(string cacheKey)
+        {
+            if (string.IsNullOrWhiteSpace(cacheKey)) return;
+
+            var entityName = typeof(TEntity).Name;
+            var keys = _trackedKeysPerEntity.GetOrAdd(entityName, _ => new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase));
+            keys.TryAdd(cacheKey, 0);
+        }
+
+        private void PurgeTrackedKeys()
+        {
+            var entityName = typeof(TEntity).Name;
+            if (_trackedKeysPerEntity.TryRemove(entityName, out var keys))
+            {
+                foreach (var key in keys.Keys)
                 {
                     _cache.Remove(key);
                 }
-                _cache.Remove(_listCacheKeysSetKey);
             }
         }
+
+        #endregion
+
+        #region List Cache Helper Methods
+
+        public void SetListCache(string cacheKey, object data, TimeSpan? absoluteExpire = null)
+        {
+            var options = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = absoluteExpire ?? TimeSpan.FromDays(1)
+            };
+            options.AddExpirationToken(GetListChangeToken());
+
+            _cache.Set(cacheKey, data, options);
+            AddToListCacheKeys(cacheKey);
+        }
+
+        public bool TryGetListCache<T>(string cacheKey, out T? value)
+        {
+            return _cache.TryGetValue(cacheKey, out value);
+        }
+
+        public T? GetListCache<T>(string cacheKey)
+        {
+            if (_cache.TryGetValue(cacheKey, out T? value))
+            {
+                return value;
+            }
+            return default;
+        }
+
+        #endregion
+
+        #region Entity Cache Methods
 
         public void SetEntityCache(Guid entityId, object data, TimeSpan? absoluteExpire = null)
         {
@@ -107,9 +252,18 @@ namespace Application.Common.Caching
             return default;
         }
 
+        #endregion
+
+        #region Key Generation & Normalization
+
         public virtual string GetCacheKey(string paramName, object? paramValue)
         {
-            var filterValue = paramValue?.ToString()?.Replace(" ", "_") ?? "Null";
+            if (paramValue == null || (paramValue is string s && string.IsNullOrWhiteSpace(s)))
+            {
+                return $"{typeof(TEntity).Name}_{paramName}_Null";
+            }
+
+            var filterValue = paramValue.ToString()?.Trim().Replace(" ", "_") ?? "Null";
             return $"{typeof(TEntity).Name}_{paramName}_{filterValue}";
         }
 
@@ -133,7 +287,8 @@ namespace Application.Common.Caching
             // Xử lý trực tiếp các kiểu dữ liệu đơn (string, Guid, số, primitive)
             if (parameters is string or ValueType)
             {
-                var valStr = parameters.ToString()?.Replace(" ", "_") ?? "Null";
+                var valStr = parameters.ToString()?.Trim().Replace(" ", "_");
+                if (string.IsNullOrWhiteSpace(valStr)) valStr = "Null";
                 return $"{typeof(TEntity).Name}_{valStr}";
             }
 
@@ -143,7 +298,9 @@ namespace Application.Common.Caching
             if (paramType.IsGenericType && paramType.GetGenericTypeDefinition() == typeof(SingleParameter<>))
             {
                 dynamic singleParam = parameters;
-                var singleVal = singleParam.Value?.ToString()?.Replace(" ", "_") ?? "Null";
+                var singleVal = singleParam.Value?.ToString()?.Trim().Replace(" ", "_");
+                if (string.IsNullOrWhiteSpace(singleVal))
+                    singleVal = "Null";
                 return $"{typeof(TEntity).Name}_{singleParam.Key}_{singleVal}";
             }
 
@@ -157,17 +314,30 @@ namespace Application.Common.Caching
                 {
                     foreach (var filter in dynamicParams.Filters)
                     {
-                        var singleVal = filter.Value?.ToString()?.Replace(" ", "_") ?? "Null";
-                        return $"{typeof(TEntity).Name}_{filter.Key}_{singleVal}";
+                        var singleVal = filter.Value?.ToString()?.Trim().Replace(" ", "_");
+                        if (!string.IsNullOrWhiteSpace(singleVal))
+                        {
+                            return $"{typeof(TEntity).Name}_{filter.Key}_{singleVal}";
+                        }
                     }
                 }
 
                 key += $"Page_{dynamicParams.PageNumber}_Size_{dynamicParams.PageSize}";
 
-                foreach (var filter in dynamicParams.Filters)
+                // Sắp xếp filter theo Key và bỏ qua filter rỗng / khoảng trắng
+                if (dynamicParams.Filters is IEnumerable<KeyValuePair<string, object>> filters)
                 {
-                    var filterValue = filter.Value?.ToString()?.Replace(" ", "_") ?? "Null";
-                    key += $"_{filter.Key}_{filterValue}";
+                    foreach (var filter in filters.OrderBy(f => f.Key))
+                    {
+                        if (filter.Value == null) continue;
+                        if (filter.Value is string s && string.IsNullOrWhiteSpace(s)) continue;
+
+                        var filterValue = filter.Value.ToString()?.Trim().Replace(" ", "_");
+                        if (!string.IsNullOrEmpty(filterValue))
+                        {
+                            key += $"_{filter.Key}_{filterValue}";
+                        }
+                    }
                 }
 
                 return key;
@@ -181,19 +351,17 @@ namespace Application.Common.Caching
             }
 
             var paramString = string.Join("_", properties
-                .Select(p => $"{p.Name}_{p.GetValue(parameters)}"));
+                .OrderBy(p => p.Name)
+                .Select(p =>
+                {
+                    var val = p.GetValue(parameters)?.ToString()?.Trim().Replace(" ", "_");
+                    if (string.IsNullOrWhiteSpace(val)) val = "Null";
+                    return $"{p.Name}_{val}";
+                }));
 
             return key + paramString;
         }
 
-        public void AddToListCacheKeys(string cacheKey)
-        {
-            var cacheKeys = _cache.Get<HashSet<string>>(_listCacheKeysSetKey) ?? new HashSet<string>();
-            cacheKeys.Add(cacheKey);
-            _cache.Set(_listCacheKeysSetKey, cacheKeys, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = _defaultExpiration
-            });
-        }
+        #endregion
     }
 }
