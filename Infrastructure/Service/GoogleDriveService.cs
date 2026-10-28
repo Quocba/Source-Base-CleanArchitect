@@ -1,6 +1,5 @@
 ﻿using Application.IService;
 using Application.Payload.Request.Uploads;
-using Domain;
 using Domain.Payload.Base;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
@@ -8,39 +7,60 @@ using Google.Apis.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+
+namespace Infrastructure.Service;
 
 public class GoogleDriveService : IGoogleDriveService
 {
-    private readonly DriveService _service;
-    private readonly string _folderId;
+    private readonly IConfiguration _config;
     private readonly ILogger<GoogleDriveService> _logger;
+    private DriveService? _service;
+    private string? _folderId;
+    private readonly object _lock = new();
 
     public GoogleDriveService(IConfiguration config, ILogger<GoogleDriveService> logger)
     {
+        _config = config;
         _logger = logger;
+    }
 
-        var settings = config.GetSection("GoogleDrive");
-        _folderId = settings["FolderId"];
-        var serviceAccountFile = settings["ServiceAccountKeyFile"];
+    private DriveService GetService()
+    {
+        if (_service != null) return _service;
 
-        if (string.IsNullOrEmpty(_folderId))
-            throw new Exception("GoogleDrive FolderId is missing in configuration");
-
-        if (string.IsNullOrEmpty(serviceAccountFile) || !File.Exists(serviceAccountFile))
-            throw new Exception("ServiceAccountKeyFile path is invalid");
-
-        GoogleCredential credential;
-        using (var stream = new FileStream(serviceAccountFile, FileMode.Open, FileAccess.Read))
+        lock (_lock)
         {
-            credential = GoogleCredential.FromStream(stream)
-                .CreateScoped(DriveService.Scope.Drive);
+            if (_service != null) return _service;
+
+            var settings = _config.GetSection("GoogleDrive");
+            _folderId = settings["FolderId"];
+            var serviceAccountFile = settings["ServiceAccountKeyFile"];
+
+            if (string.IsNullOrEmpty(_folderId))
+                throw new InvalidOperationException("GoogleDrive:FolderId is missing in configuration.");
+
+            if (string.IsNullOrEmpty(serviceAccountFile) || !File.Exists(serviceAccountFile))
+                throw new FileNotFoundException($"GoogleDrive:ServiceAccountKeyFile path is invalid or file not found: {serviceAccountFile}");
+
+            GoogleCredential credential;
+            using (var stream = new FileStream(serviceAccountFile, FileMode.Open, FileAccess.Read))
+            {
+                credential = GoogleCredential.FromStream(stream)
+                    .CreateScoped(DriveService.Scope.Drive);
+            }
+
+            _service = new DriveService(new BaseClientService.Initializer
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = "CleanArchitectureBase"
+            });
+
+            return _service;
         }
-
-        _service = new DriveService(new BaseClientService.Initializer
-        {
-            HttpClientInitializer = credential,
-            ApplicationName = "MyApp"
-        });
     }
 
     public async Task<ApiResponse<string>> UploadAsync(UploadRequest request)
@@ -50,14 +70,15 @@ public class GoogleDriveService : IGoogleDriveService
             var file = request.File;
             if (file == null || file.Length == 0)
             {
-                _logger.LogWarning("UploadAsync called with empty file");
                 return new ApiResponse<string>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "File is null or empty",
+                    Message = "File khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng",
                     Data = null
                 };
             }
+
+            var driveService = GetService();
 
             using var ms = new MemoryStream();
             await file.CopyToAsync(ms);
@@ -66,57 +87,51 @@ public class GoogleDriveService : IGoogleDriveService
             var metadata = new Google.Apis.Drive.v3.Data.File
             {
                 Name = file.FileName,
-                Parents = new List<string> { _folderId }
+                Parents = string.IsNullOrEmpty(_folderId) ? null : new List<string> { _folderId }
             };
 
-            var uploadRequest = _service.Files.Create(metadata, ms, file.ContentType);
+            var uploadRequest = driveService.Files.Create(metadata, ms, file.ContentType);
             uploadRequest.Fields = "id, name, webViewLink";
-            uploadRequest.SupportsAllDrives = false; // Không dùng Shared Drive
 
             var result = await uploadRequest.UploadAsync();
 
             if (result.Status != Google.Apis.Upload.UploadStatus.Completed)
             {
-                _logger.LogError("Upload failed: {Status} - {Exception}", result.Status, result.Exception);
+                _logger.LogError("Google Drive Upload failed: {Message}", result.Exception?.Message);
                 return new ApiResponse<string>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = $"Upload failed: {result.Exception?.Message ?? result.Status.ToString()}",
+                    Message = $"Táº£i lÃªn Google Drive tháº¥t báº¡i: {result.Exception?.Message ?? result.Status.ToString()}",
                     Data = null
                 };
             }
 
             var uploaded = uploadRequest.ResponseBody;
-
             if (uploaded == null || string.IsNullOrEmpty(uploaded.Id))
             {
-                _logger.LogError("Upload failed: ResponseBody or File ID is null");
                 return new ApiResponse<string>
                 {
                     StatusCode = StatusCodes.Status500InternalServerError,
-                    Message = "Upload failed: ResponseBody or File ID is null",
+                    Message = "KhÃ´ng nháº­n Ä‘Æ°á»£c pháº£n há»“i File ID tá»« Google Drive",
                     Data = null
                 };
             }
 
             var url = uploaded.WebViewLink ?? $"https://drive.google.com/file/d/{uploaded.Id}/view";
-
-            _logger.LogInformation("File uploaded successfully: {FileName} - {Url}", file.FileName, url);
-
             return new ApiResponse<string>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Upload Success",
+                Message = "Táº£i lÃªn Google Drive thÃ nh cÃ´ng",
                 Data = url
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during Google Drive upload");
+            _logger.LogError(ex, "Exception during Google Drive upload: {Message}", ex.Message);
             return new ApiResponse<string>
             {
                 StatusCode = StatusCodes.Status500InternalServerError,
-                Message = $"Upload failed: {ex.Message}",
+                Message = $"Lá»—i khi táº£i lÃªn Google Drive: {ex.Message}",
                 Data = null
             };
         }

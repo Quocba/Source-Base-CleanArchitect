@@ -1,4 +1,4 @@
-using Application.Common.Caching;
+﻿using Application.Common.Caching;
 using Application.Common.Util;
 using Application.Interfaces;
 using Application.IService;
@@ -34,7 +34,7 @@ public class LoginCommandHandler(IUnitOfWork _unitOfWork,
                 return new ApiResponse<LoginResposne>
                 {
                     StatusCode = StatusCode.BadRequest,
-                    Message = "Tài khoản và mật khẩu không được để trống",
+                    Message = "TÃ i khoáº£n vÃ  máº­t kháº©u khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng",
                     Data = null
                 };
             }
@@ -54,7 +54,8 @@ public class LoginCommandHandler(IUnitOfWork _unitOfWork,
                                                 PasswordHash = x.Password,
                                                 IsDeleted = x.IsDeleted,
                                                 IsLock = x.IsLock,
-                                                RoleName = x.Role != null ? x.Role.Name : null
+                                                RoleName = x.Role != null ? x.Role.ToString() : null,
+                                                StorageCapacity = x.StorageCapacity
                                             },
                                             disableTracking: true
                                         );
@@ -71,7 +72,7 @@ public class LoginCommandHandler(IUnitOfWork _unitOfWork,
                 return new ApiResponse<LoginResposne>
                 {
                     StatusCode = StatusCode.BadRequest,
-                    Message = "Tài khoản không tồn tại trên hệ thống",
+                    Message = "TÃ i khoáº£n khÃ´ng tá»“n táº¡i trÃªn há»‡ thá»‘ng",
                     Data = null
                 };
             }
@@ -81,7 +82,7 @@ public class LoginCommandHandler(IUnitOfWork _unitOfWork,
                 return new ApiResponse<LoginResposne>
                 {
                     StatusCode = StatusCode.BadRequest,
-                    Message = "Tài khoản của bạn đã bị khoá",
+                    Message = "TÃ i khoáº£n cá»§a báº¡n Ä‘Ã£ bá»‹ khÃ³a",
                     Data = null
                 };
             }
@@ -92,31 +93,45 @@ public class LoginCommandHandler(IUnitOfWork _unitOfWork,
                 return new ApiResponse<LoginResposne>
                 {
                     StatusCode = StatusCode.BadRequest,
-                    Message = "Mật khẩu không chính xác",
+                    Message = "Máº­t kháº©u khÃ´ng chÃ­nh xÃ¡c",
                     Data = null
                 };
             }
 
             var token = _jwtService.GenerateToken(user.Id, user.UserName ?? string.Empty, user.RoleName);
 
+            var usedBytes = 0L;
+            var totalBytes = user.StorageCapacity > 0 ? user.StorageCapacity : 5368709120L;
+            var freeBytes = Math.Max(0L, totalBytes - usedBytes);
+
+            var totalGB = Math.Round(totalBytes / 1024d / 1024 / 1024, 2);
+            var usedGB = Math.Round(usedBytes / 1024d / 1024 / 1024, 2);
+            var freeGB = Math.Round(freeBytes / 1024d / 1024 / 1024, 2);
+
             return new ApiResponse<LoginResposne>
             {
                 StatusCode = StatusCode.OK,
-                Message = "Đăng nhập thành công",
+                Message = "ÄÄƒng nháº­p thÃ nh cÃ´ng",
                 Data = new LoginResposne
                 {   
                     UserName = user.UserName,
                     IsDeleted = user.IsDeleted,
                     IsLock = user.IsLock,
                     Role = user.RoleName,
-                    Token = token
+                    Token = token,
+                    TotalStorage = totalGB,
+                    UsedStorage = usedGB,
+                    FreeStorage = freeGB,
+                    TotalStorageBytes = totalBytes,
+                    UsedStorageBytes = usedBytes,
+                    FreeStorageBytes = freeBytes
                 }
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LoginCommandHandler] Đăng nhập không thành công, hệ thống đang gặp sự cố");
-            throw new Exception("Đăng nhập không thành công hệ thống đang gặp sự cố, vui lòng thử lại sau");
+            _logger.LogError(ex, "[LoginCommandHandler] ÄÄƒng nháº­p khÃ´ng thÃ nh cÃ´ng, há»‡ thá»‘ng Ä‘ang gáº·p sá»± cá»‘");
+            throw new Exception("ÄÄƒng nháº­p khÃ´ng thÃ nh cÃ´ng, há»‡ thá»‘ng Ä‘ang gáº·p sá»± cá»‘. Vui lÃ²ng thá»­ láº¡i sau.", ex);
         }
     }
 }

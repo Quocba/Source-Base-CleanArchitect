@@ -1,37 +1,36 @@
-﻿using API.Middleware.GlobalLogger;
-using API.Middleware.JWTMidlleware;
-using BaseAPI.DI;
+﻿using BaseAPI.DI;
 using BaseAPI.Middleware;
+using BaseAPI.Middleware.GlobalLogger;
 using BaseAPI.Middleware.JWTMidlleware;
 using BaseAPI.Middleware.SecurityLog;
 using Domain.Payload.Base;
 using Application.Common.Share.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Http;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
 using Scalar.AspNetCore;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = null;
+    serverOptions.Limits.Http2.MaxStreamsPerConnection = 1000;
+    serverOptions.Limits.Http2.InitialConnectionWindowSize = 2 * 1024 * 1024;
+    serverOptions.Limits.Http2.InitialStreamWindowSize = 1024 * 1024;
+});
+
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.MaxRequestBodySize = int.MaxValue;
+});
 
 DependencyInjection.Register(builder.Services, builder.Configuration, new HttpContextAccessor(), builder.Environment);
 var app = builder.Build();
 
-app.MapOpenApi();
-app.MapScalarApiReference(options =>
-{
-    options.Title = "Clean Architecture API";
-    options.Theme = ScalarTheme.Saturn;
-    options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-});
-
-// Middleware tính toán thời gian thực thi (Timing) của API
+// Middleware tÃ­nh toÃ¡n thá»i gian thá»±c thi (Timing) cá»§a API
 app.UseMiddleware<ResponseTimingMiddleware>();
 
 app.UseCors("Allow");
@@ -40,12 +39,17 @@ app.UseMiddleware<ExceptionLoggingMiddleware>();
 app.UseStaticFiles();
 app.UseSharedStaticFiles(builder.Configuration);
 
-//app.UseHttpsRedirection();
 app.UseAuthentication();
-//app.UseMiddleware<TokenFingerprintMiddleware>();
 app.UseAuthorization();
+
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
+{
+    options.WithTitle("Clean Architecture API")
+           .WithTheme(ScalarTheme.Saturn)
+           .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+});
 app.MapControllers();
 
 app.Run();
 
-public record UserInfo(string Name, int Age, string Email);

@@ -41,6 +41,55 @@ public class UnitOfWork<TContext> : IUnitOfWork where TContext : DbContext
         return await _context.SaveChangesAsync();
     }
 
+    public async Task BeginTransactionAsync()
+    {
+        _currentTransaction ??= await _context.Database.BeginTransactionAsync();
+    }
+
+    public async Task CommitTransactionAsync()
+    {
+        try
+        {
+            await CommitAsync();
+            if (_currentTransaction != null)
+            {
+                await _currentTransaction.CommitAsync();
+            }
+        }
+        catch
+        {
+            await RollbackTransactionAsync();
+            throw;
+        }
+        finally
+        {
+            if (_currentTransaction != null)
+            {
+                await _currentTransaction.DisposeAsync();
+                _currentTransaction = null;
+            }
+        }
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        try
+        {
+            if (_currentTransaction != null)
+            {
+                await _currentTransaction.RollbackAsync();
+            }
+        }
+        finally
+        {
+            if (_currentTransaction != null)
+            {
+                await _currentTransaction.DisposeAsync();
+                _currentTransaction = null;
+            }
+        }
+    }
+
     private void TrackChanges()
     {
         var errors = _context.ChangeTracker.Entries<IValidatableObject>()

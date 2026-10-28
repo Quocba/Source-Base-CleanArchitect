@@ -17,16 +17,19 @@ public class JWTService :  IJWTService
 
     public JWTService(JwtSettings settings, IHttpContextAccessor? httpContextAccessor)
     {
-        _jwtSettings = settings;
+        _jwtSettings = settings ?? new JwtSettings();
         _httpContextAccessor = httpContextAccessor;
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+        var signingKey = !string.IsNullOrEmpty(_jwtSettings.Key)
+            ? _jwtSettings.Key
+            : "DefaultSecretKeyForJwtAuthentication32CharsMin!";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         _signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         _tokenHandler = new JwtSecurityTokenHandler();
     }
 
     public string GenerateToken(User user)
     {
-        return GenerateToken(user.Id, user.UserName ?? string.Empty, user.Role?.Name);
+        return GenerateToken(user.Id, user.UserName ?? string.Empty, user.Role.ToString());
     }
 
     public string GenerateToken(Guid userId, string userName, string? roleName)

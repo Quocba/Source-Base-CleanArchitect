@@ -1,4 +1,4 @@
-namespace Domain.Enums
+﻿namespace Domain.Enums
 {
     public enum FolderPath
     {
@@ -7,6 +7,8 @@ namespace Domain.Enums
         XuatKho,
         SanPham,
         Receipt,
-        EmployeeImage
+        EmployeeImage,
+        Avatar,
+        General
     }
 }

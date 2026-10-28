@@ -10,7 +10,6 @@ namespace BaseAPI.Controllers
     [Route(EndpointManage.ApiVersion + "/emails")]
     public class EmailsController(IMediator _mediator) : Controller
     {
-        // Tạm thời comment do chưa dùng RabbitMQ
         // [HttpPost("send-queue")]
         // public async Task<IActionResult> SendQueue([FromBody] SendEmailQueueCommand request)
         // {

@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace API.Middleware.GlobalLogger
+namespace BaseAPI.Middleware.GlobalLogger
 {
     public class ExceptionLoggingMiddleware
     {

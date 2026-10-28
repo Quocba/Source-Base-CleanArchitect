@@ -28,7 +28,7 @@ namespace RedisService.Service
         {
             var json = await _db.StringGetAsync(key);
             if (json.IsNullOrEmpty) return default;
-            return JsonSerializer.Deserialize<T>(json);
+            return JsonSerializer.Deserialize<T>((string)json!);
         }
 
         public async Task RemoveAsync(string key)

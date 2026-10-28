@@ -1,20 +1,22 @@
+using Domain.Entities.Base;
+using Domain.Enums;
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Numerics;
 
 namespace Domain.Entities;
 
-public class User
+[Table("Users")]
+public class User : BaseEntity<Guid>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Code { get; set; }
     public string? UserName { get; set; }
     public string? Password { get; set; }
-    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-    public DateTime? LastModifiedDate { get; set; }
-    public bool IsDeleted { get; set; } = false;
     public bool IsLock { get; set; } = false;
-    public bool IsUseSoftWare { get; set; } = true;
-    public Guid RoleId { get; set; }
-
-    [ForeignKey(nameof(RoleId))]
-    public virtual Role? Role { get; set; }
+    public string Phone { get; set; }
+    public string Avatar { get; set; }
+    public string Email { get; set; }
+    public long StorageCapacity { get; set; } = 5368709120;
+    public ERole Role { get; set; }
+    
 }

@@ -6,12 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RabbitMQContract.Generic.Request;
+using RabbitMQContract.Generic;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RabbitMQContract.Generic
+namespace Infrastructure.GenericRepository
 {
     public class GenericQueueConsumer : IConsumer<GenericQueueMessage>
     {

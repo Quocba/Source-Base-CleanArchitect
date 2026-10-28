@@ -1,10 +1,12 @@
-﻿using Infrastructure.Context;
+using Infrastructure.Context;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMQContract.Generic;
 using System;
 using System.Text.Json;
+
+namespace Infrastructure.Service;
 
 public class DbActionConsumer : IConsumer<DbActionMessage>
 {

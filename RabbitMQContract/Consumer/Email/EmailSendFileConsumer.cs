@@ -1,4 +1,4 @@
-﻿using EmailService.DTO;
+using EmailService.DTO;
 using EmailService.Interface;
 using MassTransit;
 using RabbitMQContract.Payload.Request;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RabbitMQContract.Consumer
+namespace RabbitMQContract.Consumer.Email
 {
     public class EmailSendFileConsumer : IConsumer<EmailSendFileMessage>
     {

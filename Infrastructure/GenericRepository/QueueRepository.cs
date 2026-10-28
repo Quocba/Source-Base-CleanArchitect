@@ -3,7 +3,7 @@ using Domain.Enums;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using RabbitMQContract.Generic.Request;
+using RabbitMQContract.Generic;
 using System;
 using System.Collections.Generic;
 using System.Linq;

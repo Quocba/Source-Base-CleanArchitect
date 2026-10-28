@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using MaxMind.GeoIP2;
 using Microsoft.Extensions.Options;
 using Serilog;
@@ -50,7 +51,7 @@ public class SecurityMiddleware
 
         var ip = GetRealIp(context);
 
-        if (_settings.WhitelistedIps.Contains(ip))
+        if (_settings.WhitelistedIps.Contains(ip) || (context.Connection.RemoteIpAddress != null && IPAddress.IsLoopback(context.Connection.RemoteIpAddress)))
         {
             await _next(context);
             return;
@@ -81,9 +82,12 @@ public class SecurityMiddleware
             return;
         }
 
-        if (IsRateLimitExceeded(ip))
+        if (IsRateLimitExceeded(ip, out var retryAfterSeconds))
         {
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.Headers["Retry-After"] = retryAfterSeconds.ToString();
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync($"{{\"statusCode\":429,\"message\":\"Rate limit exceeded. Try again in {retryAfterSeconds} seconds.\"}}");
             return;
         }
 
@@ -115,21 +119,35 @@ public class SecurityMiddleware
         return ua.Contains("sqlmap") || ua.Contains("nmap") || ua.Contains("acunetix");
     }
 
-    private bool IsRateLimitExceeded(string ip)
+    private bool IsRateLimitExceeded(string ip, out int retryAfterSeconds)
     {
         var now = DateTime.UtcNow;
-        var entry = RateCache.GetOrAdd(ip, _ => (0, now));
+        var isExceeded = false;
+        var remainingSeconds = _settings.RateLimitWindowSeconds;
 
-        if ((now - entry.Timestamp).TotalSeconds > _settings.RateLimitWindowSeconds)
-        {
-            RateCache[ip] = (1, now);
-            return false;
-        }
+        RateCache.AddOrUpdate(
+            ip,
+            _ => (1, now),
+            (_, current) =>
+            {
+                var elapsed = (now - current.Timestamp).TotalSeconds;
+                if (elapsed > _settings.RateLimitWindowSeconds)
+                {
+                    return (1, now);
+                }
 
-        if (entry.Count >= _settings.RateLimitCount) return true;
+                if (current.Count >= _settings.RateLimitCount)
+                {
+                    isExceeded = true;
+                    remainingSeconds = (int)Math.Max(1, Math.Ceiling(_settings.RateLimitWindowSeconds - elapsed));
+                    return current;
+                }
 
-        RateCache[ip] = (entry.Count + 1, entry.Timestamp);
-        return false;
+                return (current.Count + 1, current.Timestamp);
+            });
+
+        retryAfterSeconds = remainingSeconds;
+        return isExceeded;
     }
 
     private (string Country, string City) GetGeo(string ip)

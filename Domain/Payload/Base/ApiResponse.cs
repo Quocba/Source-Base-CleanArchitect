@@ -1,4 +1,4 @@
-﻿namespace Domain.Payload.Base
+namespace Domain.Payload.Base
 {
     public class ApiResponse<T>
     {

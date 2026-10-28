@@ -199,7 +199,9 @@ namespace Application.Common.Caching
             {
                 AbsoluteExpirationRelativeToNow = absoluteExpire ?? _defaultExpiration
             };
+            options.AddExpirationToken(GetListChangeToken());
             _cache.Set(key, data, options);
+            AddToListCacheKeys(key);
         }
 
         public void SetEntityCache(string key, object data, TimeSpan? absoluteExpire = null)
@@ -209,7 +211,9 @@ namespace Application.Common.Caching
             {
                 AbsoluteExpirationRelativeToNow = absoluteExpire ?? _defaultExpiration
             };
+            options.AddExpirationToken(GetListChangeToken());
             _cache.Set(cacheKey, data, options);
+            AddToListCacheKeys(cacheKey);
         }
 
         public bool TryGetEntityCache<T>(Guid entityId, out T? value)

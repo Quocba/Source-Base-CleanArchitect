@@ -4,8 +4,9 @@ using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Application.Features.Auth.Command.Login;
+using Application.Features.Auth.Command.ChangePassword;
 
-namespace API.Controllers
+namespace BaseAPI.Controllers
 {
     [ApiController]
     [Route(EndpointManage.ApiVersion + "/auth")]
@@ -16,6 +17,19 @@ namespace API.Controllers
         public async Task<IActionResult> Login([FromBody]LoginCommand command)
         {
             var response = await _mediator.Send(command);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        [HttpPatch("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangeMyPassword([FromBody] ChangePasswordCommand request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var response = await _mediator.Send(request);
             return StatusCode(response.StatusCode, response);
         }
     }

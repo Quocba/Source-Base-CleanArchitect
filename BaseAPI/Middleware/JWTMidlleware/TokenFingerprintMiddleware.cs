@@ -1,6 +1,6 @@
-﻿using Application.IService;
+using Application.IService;
 
-namespace API.Middleware.JWTMidlleware
+namespace BaseAPI.Middleware.JWTMidlleware
 {
     public class TokenFingerprintMiddleware
     {

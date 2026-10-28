@@ -1,10 +1,10 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-namespace YourNamespace.Middleware
+namespace BaseAPI.Middleware.BanIPMidlleware
 {
     public class IpBanMiddleware
     {

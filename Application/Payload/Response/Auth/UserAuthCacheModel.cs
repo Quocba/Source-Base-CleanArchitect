@@ -10,10 +10,11 @@ namespace Application.Payload.Response.Auth
         public bool IsDeleted { get; set; }
         public bool IsLock { get; set; }
         public string? RoleName { get; set; }
+        public long StorageCapacity { get; set; }
 
         public UserAuthCacheModel() { }
 
-        public UserAuthCacheModel(Guid id, string? userName, string? passwordHash, bool isDeleted, bool isLock, string? roleName)
+        public UserAuthCacheModel(Guid id, string? userName, string? passwordHash, bool isDeleted, bool isLock, string? roleName, long storageCapacity = 0)
         {
             Id = id;
             UserName = userName;
@@ -21,6 +22,7 @@ namespace Application.Payload.Response.Auth
             IsDeleted = isDeleted;
             IsLock = isLock;
             RoleName = roleName;
+            StorageCapacity = storageCapacity;
         }
     }
 }

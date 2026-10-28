@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 
 namespace Application.Features.Emails.Commands.SendEmailQueue
 {
-/*
-    // Tạm thời comment do chưa dùng RabbitMQ / MassTransit
+    /*
     public class SendEmailQueueCommandHandle(IPublishEndpoint _publishEndpoint,
                                              ILogger<SendEmailQueueCommandHandle> _logger)
         : IRequestHandler<SendEmailQueueCommand, ApiResponse<string>>
@@ -25,7 +24,7 @@ namespace Application.Features.Emails.Commands.SendEmailQueue
                     return new ApiResponse<string>
                     {
                         StatusCode = StatusCode.BadRequest,
-                        Message = "To và Subject không được để trống."
+                        Message = "To vÃ  Subject khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng."
                     };
                 }
 
@@ -39,16 +38,16 @@ namespace Application.Features.Emails.Commands.SendEmailQueue
                 return new ApiResponse<string>
                 {
                     StatusCode = StatusCode.Accepted,
-                    Message = "Yêu cầu gửi email đã được đưa vào hàng đợi xử lý.",
+                    Message = "YÃªu cáº§u gá»­i email Ä‘Ã£ Ä‘Æ°á»£c Ä‘Æ°a vÃ o hÃ ng Ä‘á»£i xá»­ lÃ½.",
                     Data = request.To
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi gửi email vào hàng đợi: {Message}", ex.Message);
+                _logger.LogError(ex, "Lá»—i khi gá»­i email vÃ o hÃ ng Ä‘á»£i: {Message}", ex.Message);
                 throw;
             }
         }
     }
-*/
+    */
 }
